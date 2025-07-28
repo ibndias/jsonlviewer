@@ -64,6 +64,8 @@
   .hidden{display:none !important}
   .footer{margin-top:10px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between}
   .credit{opacity:.9}
+  .footer a{color:inherit; text-decoration:none}
+  .footer a:hover{color:var(--accent)}
 
   /* Tree view */
   .tree{font-family:var(--mono); font-size:12.5px}
@@ -146,7 +148,7 @@
     <div class="list" id="list"></div>
     <div class="footer wrap" id="footer">
       <span id="filterInfo"></span>
-      <span class="credit">JSON/JSONL Viewer — by <strong>ibndias</strong></span>
+      <span class="credit">JSON/JSONL Viewer — by <a href="https://github.com/ibndias" target="_blank" rel="noopener"><strong>ibndias</strong></a></span>
     </div>
   </main>
 
