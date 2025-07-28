@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>JSON / JSONL Viewer</title>
+<style>
+  :root {
+    --bg:#f6f7f9; --panel:#ffffff; --muted:#5b6b7c; --fg:#0c1117; --accent:#2463eb;
+    --ok:#0ea85e; --warn:#b7791f; --err:#d64545; --border:#e6eaee; --chip:#eef2f7;
+    --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    --round:14px;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0d10; --panel:#11151a; --muted:#8796a8; --fg:#e7ecf3; --accent:#4da3ff;
+    --ok:#3ecf8e; --warn:#ffb454; --err:#ff6b6b; --border:#1e2630; --chip:#1a212b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme]){ 
+      --bg:#0b0d10; --panel:#11151a; --muted:#8796a8; --fg:#e7ecf3; --accent:#4da3ff;
+      --ok:#3ecf8e; --warn:#ffb454; --err:#ff6b6b; --border:#1e2630; --chip:#1a212b;
+    }
+  }
+
+  html,body{height:100%}
+  body{margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}
+  header{position:sticky; top:0; z-index:10; backdrop-filter:saturate(1.2) blur(6px);
+         background:color-mix(in oklab, var(--bg) 70%, transparent); border-bottom:1px solid var(--border)}
+  .wrap{max-width:1100px; margin:0 auto; padding:14px 16px;}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+  h1{font-size:18px; margin:0; letter-spacing:.3px}
+  .chip{background:var(--chip); border:1px solid var(--border); color:var(--muted);
+        padding:6px 10px; border-radius:999px; font-size:12px}
+  .controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .btn, .file-btn{border:1px solid var(--border); background:var(--panel); color:var(--fg);
+        padding:9px 12px; border-radius:10px; cursor:pointer; font-weight:600}
+  .btn:hover, .file-btn:hover{border-color:color-mix(in oklab, var(--accent) 40%, var(--border))}
+  .file-input{display:none}
+  .switch{display:inline-flex; gap:10px; align-items:center; user-select:none; cursor:pointer;
+          padding:6px 10px; border:1px solid var(--border); border-radius:999px; background:var(--panel)}
+  .switch input{appearance:none; width:36px; height:20px; border-radius:999px; background:#5f6b7a; position:relative; outline:none; transition:.2s}
+  .switch input:checked{background:var(--accent)}
+  .switch input::after{content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:.2s}
+  .switch input:checked::after{left:18px}
+  .search{min-width:220px; flex:1 1 260px; background:var(--panel); border:1px solid var(--border);
+          color:var(--fg); border-radius:10px; padding:10px 12px; outline:none}
+  main{max-width:1100px; margin:16px auto; padding:0 16px 40px}
+  .drop{border:1px dashed var(--border); background:color-mix(in oklab, var(--panel) 80%, transparent);
+        border-radius:var(--round); padding:22px; text-align:center; color:var(--muted);
+        transition:.15s; margin-bottom:16px}
+  .drop.active{border-color:var(--accent); color:var(--fg); background:color-mix(in oklab, var(--panel) 90%, transparent)}
+  .list{display:grid; gap:12px}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:var(--round); overflow:hidden}
+  .card header{position:relative; background:transparent; border:0; padding:0; backdrop-filter:none}
+  .card-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border)}
+  .ln{font-weight:700; color:var(--muted)}
+  .badge-ok{color:var(--ok); font-weight:700}
+  .badge-err{color:var(--err); font-weight:700}
+  .body{padding:12px}
+  .toolbar{display:flex; gap:8px; align-items:center}
+  .mini-btn{font:600 11px/1 var(--mono); letter-spacing:.2px; padding:6px 8px; border-radius:8px;
+            border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer}
+  .mini-btn:hover{color:var(--fg); border-color:color-mix(in oklab, var(--accent) 40%, var(--border))}
+  .hidden{display:none !important}
+  .footer{margin-top:10px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between}
+  .credit{opacity:.9}
+
+  /* Tree view */
+  .tree{font-family:var(--mono); font-size:12.5px}
+  .kv{display:flex; align-items:flex-start; gap:6px; padding-left:0}
+  .key{color:#9cdcfe}
+  .pun{color:#8b949e}
+  .str{color:#ce9178; white-space:pre-wrap}
+  .num{color:#b5cea8}
+  .bool{color:#4ec9b0}
+  .nil{color:#c586c0}
+  details.tree-node{margin-left:18px}
+  details.tree-node>summary{list-style:none; cursor:pointer; display:inline-flex; align-items:baseline; gap:6px}
+  details.tree-node>summary::-webkit-details-marker{display:none}
+  .caret{display:inline-block; width:0; height:0; border-style:solid; border-width:4px 0 4px 6px; border-color:transparent transparent transparent #8b949e; margin-right:4px; transform:translateY(1px) rotate(0deg); transition:transform .15s}
+  details[open] > summary .caret{transform:translateY(1px) rotate(90deg)}
+  .children{margin-left:18px; border-left:1px dashed var(--border); padding-left:10px; margin-top:6px}
+  .node-head{color:#8b949e}
+  .node-meta{color:#8b949e; font-style:italic}
+
+  /* Toast */
+  .toast{
+    position:fixed; top:12px; right:12px; z-index:50;
+    background:var(--panel); color:var(--fg); border:1px solid var(--border);
+    border-radius:12px; padding:10px 12px; box-shadow:0 6px 20px rgba(0,0,0,.18);
+    font:12.5px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    display:none;
+  }
+  .toast.show{display:block; animation:fade 2.2s ease-in-out}
+  @keyframes fade{
+    0%{opacity:0; transform:translateY(-4px)}
+    10%{opacity:1; transform:translateY(0)}
+    80%{opacity:1}
+    100%{opacity:0}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="wrap row">
+      <h1>JSON / JSONL Viewer</h1>
+      <span class="chip" id="stats">No file loaded</span>
+      <div class="controls">
+        <label class="file-btn">
+          Open
+          <input class="file-input" id="fileInput" type="file" accept=".jsonl,.json,.txt,.log" />
+        </label>
+
+        <label class="switch" title="When ON, render '\n' inside string values as real line breaks">
+          <span class="muted">Render '\n' as line breaks</span>
+          <input id="nlToggle" type="checkbox" />
+        </label>
+
+        <label class="switch" title="Toggle dark mode">
+          <span class="muted">Dark mode</span>
+          <input id="themeToggle" type="checkbox" />
+        </label>
+
+        <label class="switch" title="Quick Copy: click value=copy JSON value; click key=copy key; Alt-click=copy JSON path; Ctrl/Cmd+click summary=copy node JSON">
+          <span class="muted">Quick Copy</span>
+          <input id="quickCopyToggle" type="checkbox" />
+        </label>
+
+        <button class="btn" id="expandAll">Expand all</button>
+        <button class="btn" id="collapseAll">Collapse all</button>
+        <input id="search" class="search" type="search" placeholder="Filter (simple text match)..." />
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="drop" class="drop">
+      <div><strong>Drag & drop</strong> a <code>.json</code> or <code>.jsonl</code> file here, or click <em>Open</em>.</div>
+      <div class="muted" style="margin-top:4px">
+        JSON: arrays → items as cards; object/primitive → single card. If full-JSON parse fails, viewer falls back to JSONL mode.
+      </div>
+      <div class="muted" style="margin-top:6px">
+        <strong>Quick Copy tips:</strong> click value = JSON value; click key = key name; <kbd>Alt</kbd>+click = JSON path; <kbd>Ctrl/Cmd</kbd>+click a summary = node JSON.
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="footer wrap" id="footer">
+      <span id="filterInfo"></span>
+      <span class="credit">JSON/JSONL Viewer — by <strong>ibndias</strong></span>
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+
+  const $stats = document.getElementById('stats');
+  const $list  = document.getElementById('list');
+  const $drop  = document.getElementById('drop');
+  const $file  = document.getElementById('fileInput');
+  const $toggle = document.getElementById('nlToggle');
+  const $themeToggle = document.getElementById('themeToggle');
+  const $quickCopy = document.getElementById('quickCopyToggle');
+  const $search = document.getElementById('search');
+  const $footer = document.getElementById('footer');
+  const $expandAll = document.getElementById('expandAll');
+  const $collapseAll = document.getElementById('collapseAll');
+  const $filterInfo = document.getElementById('filterInfo');
+  const $toast = document.getElementById('toast');
+
+  let state = {
+    fileName: '',
+    linesTotal: 0,
+    parsedCount: 0,
+    errorCount: 0,
+    modeNewlines: false,
+    mode: 'unknown',     // 'json' | 'jsonl' | 'unknown'
+    quickCopy: false,
+  };
+
+  /* ---------- Toast ---------- */
+  let toastTimer;
+  function showToast(msg){
+    $toast.textContent = msg;
+    $toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> $toast.classList.remove('show'), 2100);
+  }
+
+  /* ---------- Theme handling ---------- */
+  const savedTheme = localStorage.getItem('jsonl_viewer_theme'); // 'light' | 'dark'
+  if (savedTheme === 'dark' || savedTheme === 'light') {
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    $themeToggle.checked = (savedTheme === 'dark');
+  } else {
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    $themeToggle.checked = prefersDark;
+  }
+  $themeToggle.addEventListener('change', () => {
+    const theme = $themeToggle.checked ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('jsonl_viewer_theme', theme);
+  });
+
+  function updateStats(){
+    if (!state.fileName) {$stats.textContent = 'No file loaded'; return;}
+    const modeTxt = state.mode === 'json' ? 'JSON' : state.mode === 'jsonl' ? 'JSONL' : 'Auto';
+    $stats.textContent =
+      `${state.fileName} • ${modeTxt} • ${state.linesTotal} item(s) • ` +
+      `${state.parsedCount} ok • ${state.errorCount} errors`;
+  }
+
+  /* ---------- Path helpers ---------- */
+  const identRe = /^[A-Za-z_$][\w$]*$/;
+  const pathKey = (k) => identRe.test(k) ? `.${k}` : `["${String(k).replaceAll('"','\\"')}"]`;
+  const pathIdx = (i) => `[${i}]`;
+
+  /* ---------- JSON tree rendering ---------- */
+  const makeStringSpan = (v, path) => {
+    const s = el('span','str');
+    s.dataset.raw = v;
+    s.dataset.escaped = v.replaceAll('\\', '\\\\').replaceAll('\r','\\r').replaceAll('\n','\\n').replaceAll('\t','\\t');
+    s.dataset.json = JSON.stringify(v);
+    s.dataset.path = path;
+    s.dataset.kind = 'value';
+    s.textContent = state.modeNewlines ? s.dataset.raw : s.dataset.escaped;
+    return s;
+  };
+
+  const renderPrimitive = (v, path) => {
+    if (v === null) {
+      const n = el('span','nil','null');
+      n.dataset.json = 'null'; n.dataset.path = path; n.dataset.kind = 'value';
+      return n;
+    }
+    switch (typeof v){
+      case 'string': return makeStringSpan(v, path);
+      case 'number': {
+        const n = el('span','num', String(v));
+        n.dataset.json = String(v); n.dataset.path = path; n.dataset.kind = 'value';
+        return n;
+      }
+      case 'boolean': {
+        const b = el('span','bool', String(v));
+        b.dataset.json = String(v); b.dataset.path = path; b.dataset.kind = 'value';
+        return b;
+      }
+      default: {
+        const p = el('span','pun', String(v));
+        p.dataset.json = String(v); p.dataset.path = path; p.dataset.kind = 'value';
+        return p;
+      }
+    }
+  };
+
+  function renderNode(value, keyLabel=null, path='$'){
+    const container = el('div','tree');
+
+    if (value === null || typeof value !== 'object'){
+      const row = el('div','kv');
+      if (keyLabel !== null){
+        const keyEl = el('span','key','"'+keyLabel+'"');
+        keyEl.dataset.key = keyLabel;
+        keyEl.dataset.path = path;
+        keyEl.dataset.kind = 'key';
+        row.append(keyEl, el('span','pun',': '));
+      }
+      row.append(renderPrimitive(value, path));
+      container.append(row);
+      return container;
+    }
+
+    const isArr = Array.isArray(value);
+    const entries = isArr ? value.map((v,i)=>[i, v]) : Object.entries(value);
+
+    const details = el('details','tree-node'); details.open = true;
+    const summary = el('summary');
+    const caret = el('span','caret');
+    const headOpen = isArr ? '[' : '{';
+    const headClose = isArr ? ']' : '}';
+    const meta = isArr ? `${entries.length} item${entries.length!==1?'s':''}` : `${entries.length} key${entries.length!==1?'s':''}`;
+
+    if (keyLabel !== null){
+      const keyEl = el('span','key','"'+keyLabel+'"');
+      keyEl.dataset.key = keyLabel;
+      keyEl.dataset.path = path;
+      keyEl.dataset.kind = 'key';
+      summary.append(caret, keyEl, el('span','pun',': '));
+    } else {
+      summary.append(caret);
+    }
+    // allow copying whole node via summary
+    summary.dataset.kind = 'node';
+    summary.dataset.path = path;
+    try { summary.dataset.json = JSON.stringify(value); } catch { /* ignore */ }
+
+    summary.append(el('span','pun', headOpen), el('span','node-meta',' … ' + meta), el('span','pun', headClose));
+    details.append(summary);
+
+    const kids = el('div','children');
+    for (let [k,v] of entries){
+      const childPath = isArr ? (path + pathIdx(k)) : (path + pathKey(k));
+      kids.append(renderNode(v, isArr ? k : k, childPath));
+    }
+    details.append(kids);
+    container.append(details);
+    return container;
+  }
+
+  function applyNewlineMode(){
+    document.querySelectorAll('.str').forEach(s => {
+      s.textContent = state.modeNewlines ? (s.dataset.raw ?? '') : (s.dataset.escaped ?? '');
+    });
+  }
+
+  function cardForItem(idx, rawText, parsed, error, labelPrefix='Item'){
+    const card = el('div','card');
+    const head = el('div','card-head');
+    const left = el('div','row');
+    const ln = el('span','ln', `${labelPrefix} ${idx+1}`);
+    left.append(ln);
+    const toolbar = el('div','toolbar');
+
+    const copyBtn = el('button','mini-btn','Copy raw');
+    copyBtn.title = 'Copy the raw text for this item';
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(rawText);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(()=>copyBtn.textContent='Copy raw', 900);
+        showToast('Copied raw text');
+      } catch { /* ignore */ }
+    });
+
+    const copyJsonBtn = el('button','mini-btn','Copy JSON');
+    copyJsonBtn.title = 'Copy this item as pretty JSON';
+    copyJsonBtn.addEventListener('click', async () => {
+      try {
+        const txt = error ? rawText : JSON.stringify(parsed, null, 2);
+        await navigator.clipboard.writeText(txt);
+        copyJsonBtn.textContent = 'Copied!';
+        setTimeout(()=>copyJsonBtn.textContent='Copy JSON', 900);
+        showToast('Copied JSON');
+      } catch {}
+    });
+
+    const expandBtn = el('button','mini-btn','Expand');
+    expandBtn.title = 'Expand all nodes in this item';
+    expandBtn.addEventListener('click', () => {
+      card.querySelectorAll('details.tree-node').forEach(d => d.open = true);
+    });
+
+    const collapseBtn = el('button','mini-btn','Collapse');
+    collapseBtn.title = 'Collapse all nodes in this item';
+    collapseBtn.addEventListener('click', () => {
+      card.querySelectorAll('details.tree-node').forEach(d => d.open = false);
+    });
+
+    toolbar.append(copyBtn, copyJsonBtn, expandBtn, collapseBtn);
+
+    head.append(left);
+    head.append(error ? el('span','badge-err','Parse error') : el('span','badge-ok','OK'));
+    head.append(toolbar);
+
+    const body = el('div','body');
+    if (error){
+      const pre = el('pre','tree');
+      pre.textContent = rawText;
+      body.append(pre);
+    } else {
+      body.append(renderNode(parsed, null, '$'));
+    }
+
+    const headerWrap = el('header'); headerWrap.append(head);
+    card.append(headerWrap, body);
+    return card;
+  }
+
+  function clearView(){
+    $list.innerHTML = '';
+    $filterInfo.textContent = '';
+    state.linesTotal = state.parsedCount = state.errorCount = 0;
+    state.mode = 'unknown';
+    updateStats();
+  }
+
+  function filterView(query){
+    const q = (query||'').toLowerCase();
+    let visible = 0;
+    $list.querySelectorAll('.card').forEach(card => {
+      const txt = card.textContent.toLowerCase();
+      const show = !q || txt.includes(q);
+      card.classList.toggle('hidden', !show);
+      if (show) visible++;
+    });
+    $filterInfo.textContent = q ? `${visible} matching item(s)` : '';
+  }
+
+  // Try full-JSON first (for .json files and also as a fallback for others)
+  function tryParseFullJSON(text){
+    try{
+      const parsed = JSON.parse(text);
+      return { ok:true, value: parsed };
+    }catch(e){
+      return { ok:false, error: e };
+    }
+  }
+
+  function renderAsJSON(value, originalText){
+    const frag = document.createDocumentFragment();
+    if (Array.isArray(value)){
+      state.mode = 'json';
+      state.linesTotal = value.length;
+      value.forEach((item, idx) => {
+        const itemRaw = (() => {
+          try { return JSON.stringify(item); } catch { return ''; }
+        })();
+        state.parsedCount++;
+        frag.append(cardForItem(idx, itemRaw, item, false, 'Item'));
+      });
+    } else {
+      state.mode = 'json';
+      state.linesTotal = 1;
+      state.parsedCount++;
+      frag.append(cardForItem(0, originalText, value, false, 'Item'));
+    }
+    $list.replaceChildren(frag);
+    updateStats();
+  }
+
+  function renderAsJSONL(text){
+    const lines = text.split(/\r?\n/);
+    state.mode = 'jsonl';
+    state.linesTotal = lines.length;
+
+    const frag = document.createDocumentFragment();
+    lines.forEach((line, idx) => {
+      if (line.trim() === ''){
+        state.errorCount++;
+        frag.append(cardForItem(idx, line, null, true, 'Line'));
+        return;
+      }
+      try{
+        const parsed = JSON.parse(line);
+        state.parsedCount++;
+        frag.append(cardForItem(idx, line, parsed, false, 'Line'));
+      }catch(_){
+        state.errorCount++;
+        frag.append(cardForItem(idx, line, null, true, 'Line'));
+      }
+    });
+    $list.replaceChildren(frag);
+    updateStats();
+  }
+
+  async function loadFile(file){
+    clearView();
+    state.fileName = file.name;
+    updateStats();
+
+    const text = await file.text();
+    const lower = (file.name || '').toLowerCase();
+
+    if (lower.endsWith('.json')) {
+      const full = tryParseFullJSON(text);
+      if (full.ok) renderAsJSON(full.value, text);
+      else renderAsJSONL(text);
+      return;
+    }
+
+    const full = tryParseFullJSON(text);
+    if (full.ok && (typeof full.value !== 'string')) {
+      renderAsJSON(full.value, text);
+    } else {
+      renderAsJSONL(text);
+    }
+  }
+
+  /* ---------- Global expand/collapse ---------- */
+  $expandAll.addEventListener('click', () => {
+    document.querySelectorAll('details.tree-node').forEach(d => d.open = true);
+  });
+  $collapseAll.addEventListener('click', () => {
+    document.querySelectorAll('details.tree-node').forEach(d => d.open = false);
+  });
+
+  /* ---------- Drag & drop ---------- */
+  ;['dragenter','dragover'].forEach(ev=>{
+    document.addEventListener(ev, e => {
+      e.preventDefault(); e.stopPropagation();
+      $drop.classList.add('active');
+    });
+  });
+  ;['dragleave','drop'].forEach(ev=>{
+    document.addEventListener(ev, e => {
+      e.preventDefault(); e.stopPropagation();
+      if (ev === 'drop'){
+        const file = e.dataTransfer?.files?.[0];
+        if (file) loadFile(file);
+      }
+      $drop.classList.remove('active');
+    });
+  });
+
+  /* ---------- Open dialog ---------- */
+  $file.addEventListener('change', e => {
+    const f = e.target.files?.[0];
+    if (f) loadFile(f);
+    $file.value = '';
+  });
+
+  /* ---------- Toggles ---------- */
+  $toggle.addEventListener('change', () => {
+    state.modeNewlines = $toggle.checked;
+    applyNewlineMode();
+  });
+  $quickCopy.addEventListener('change', () => {
+    state.quickCopy = $quickCopy.checked;
+    showToast(state.quickCopy ? 'Quick Copy: ON' : 'Quick Copy: OFF');
+  });
+
+  /* ---------- Search ---------- */
+  let filterTimer;
+  $search.addEventListener('input', () => {
+    clearTimeout(filterTimer);
+    filterTimer = setTimeout(()=>filterView($search.value), 120);
+  });
+
+  /* ---------- Click-to-copy (Quick Copy) ---------- */
+  document.addEventListener('click', async (e) => {
+    if (!state.quickCopy) return;
+
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return;
+
+    // value spans
+    const valueEl = t.closest('.str,.num,.bool,.nil,.pun');
+    const keyEl = t.closest('.key');
+    const summaryEl = t.closest('summary');
+
+    try {
+      if (e.altKey && (valueEl || keyEl || summaryEl)) {
+        const path = (valueEl?.dataset.path) || (keyEl?.dataset.path) || (summaryEl?.dataset.path);
+        if (path) {
+          await navigator.clipboard.writeText(path);
+          showToast('Copied path: ' + path);
+          e.preventDefault();
+        }
+        return;
+      }
+
+      if (keyEl) {
+        const k = keyEl.dataset.key || '';
+        await navigator.clipboard.writeText(k);
+        showToast('Copied key: ' + k);
+        e.preventDefault();
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && summaryEl && summaryEl.dataset.json) {
+        await navigator.clipboard.writeText(summaryEl.dataset.json);
+        showToast('Copied node JSON');
+        e.preventDefault();
+        return;
+      }
+
+      if (valueEl && valueEl.dataset.json) {
+        await navigator.clipboard.writeText(valueEl.dataset.json);
+        showToast('Copied value');
+        e.preventDefault();
+        return;
+      }
+    } catch { /* ignore */ }
+  });
+
+  /* ---------- Click drop-zone to open dialog ---------- */
+  $drop.addEventListener('click', () => $file.click());
+})();
+</script>
+</body>
+</html>
