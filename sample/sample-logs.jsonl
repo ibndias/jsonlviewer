@@ -1,0 +1,7 @@
+{"timestamp": "2024-01-15T09:00:00Z", "level": "info", "service": "api-gateway", "message": "Server started successfully", "port": 8080}
+{"timestamp": "2024-01-15T09:01:30Z", "level": "info", "service": "user-service", "message": "Database connection established", "connection_pool": 20}
+{"timestamp": "2024-01-15T09:02:15Z", "level": "warn", "service": "auth-service", "message": "High memory usage detected", "memory_usage": "85%"}
+{"timestamp": "2024-01-15T09:03:45Z", "level": "error", "service": "payment-service", "message": "Payment processing failed", "error_code": "CARD_DECLINED", "user_id": 12345}
+{"timestamp": "2024-01-15T09:04:20Z", "level": "info", "service": "notification-service", "message": "Email sent successfully", "recipient": "user@example.com", "template": "welcome"}
+{"timestamp": "2024-01-15T09:05:10Z", "level": "debug", "service": "cache-service", "message": "Cache hit", "key": "user:12345:profile", "hit_rate": "92%"}
+{"timestamp": "2024-01-15T09:06:00Z", "level": "error", "service": "api-gateway", "message": "Rate limit exceeded", "ip": "192.168.1.100", "requests_per_minute": 1000}

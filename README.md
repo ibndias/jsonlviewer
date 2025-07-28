@@ -2,6 +2,12 @@
 
 A lightweight, web-based JSON and JSONL (JSON Lines) file viewer with an intuitive interface and powerful features for exploring structured data.
 
+## Screenshot
+
+![JSON/JSONL Viewer Interface](screenshots/jsonlviewer-demo.png)
+
+*The JSON/JSONL Viewer showing an interactive tree view with syntax highlighting and quick copy functionality.*
+
 ## Features
 
 ### 🔍 **Smart File Detection**
@@ -72,6 +78,13 @@ python -m http.server 8000  # then visit http://localhost:8000
 {"timestamp": "2024-01-01T00:00:00Z", "level": "info", "message": "Server started"}
 {"timestamp": "2024-01-01T00:01:00Z", "level": "error", "message": "Connection failed"}
 ```
+
+### Try It Out
+The repository includes sample data files you can use to test the viewer:
+- `sample-data.json` - Employee data with nested objects and arrays
+- `sample-logs.jsonl` - Sample log entries in JSONL format
+
+Simply drag and drop these files onto the viewer interface to see it in action!
 
 ## Quick Copy Examples
 

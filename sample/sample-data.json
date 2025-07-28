@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "Alice Johnson",
+    "email": "alice.johnson@example.com",
+    "active": true,
+    "role": "Software Engineer",
+    "department": {
+      "name": "Engineering",
+      "location": "San Francisco",
+      "budget": 1500000
+    },
+    "skills": ["JavaScript", "Python", "React", "Node.js"],
+    "projects": [
+      {
+        "name": "Project Alpha",
+        "status": "completed",
+        "duration_months": 6
+      },
+      {
+        "name": "Project Beta",
+        "status": "in_progress",
+        "duration_months": 3
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Bob Smith",
+    "email": "bob.smith@example.com",
+    "active": false,
+    "role": "Data Scientist",
+    "department": {
+      "name": "Analytics",
+      "location": "New York",
+      "budget": 800000
+    },
+    "skills": ["Python", "R", "SQL", "Machine Learning"],
+    "projects": [
+      {
+        "name": "Data Pipeline",
+        "status": "completed",
+        "duration_months": 4
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Carol Davis",
+    "email": "carol.davis@example.com",
+    "active": true,
+    "role": "Product Manager",
+    "department": {
+      "name": "Product",
+      "location": "Remote",
+      "budget": 1200000
+    },
+    "skills": ["Strategy", "User Research", "Analytics", "Agile"],
+    "projects": [
+      {
+        "name": "Feature Roadmap",
+        "status": "planning",
+        "duration_months": 12
+      },
+      {
+        "name": "User Experience Study",
+        "status": "in_progress",
+        "duration_months": 2
+      }
+    ]
+  }
+]
