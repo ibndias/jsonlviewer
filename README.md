@@ -48,7 +48,7 @@ Open the `index.html` file in any modern web browser - no server required!
 ### Local Development
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/jsonlviewer.git
+git clone https://github.com/ibndias/jsonlviewer.git
 cd jsonlviewer
 
 # Open in browser
@@ -75,11 +75,11 @@ python -m http.server 8000  # then visit http://localhost:8000
 
 ## Quick Copy Examples
 
-With Quick Copy enabled:
+With the Quick Copy System:
 - Click on `"Alice"` → copies `"Alice"`
 - Click on `name` → copies `name`
 - Alt + click on `"Alice"` → copies `$[0].name`
-- Ctrl + click on object summary → copies `{"id": 1, "name": "Alice", "active": true}`
+- Ctrl/Cmd + click on object summary → copies `{"id": 1, "name": "Alice", "active": true}`
 
 ## Browser Compatibility
 
