@@ -71,8 +71,9 @@
   .tree{font-family:var(--mono); font-size:12.5px}
   .kv{display:flex; align-items:flex-start; gap:6px; padding-left:0}
   .key{color:#9cdcfe}
+  .idx{color:#b5cea8; font-weight:600}
   .pun{color:#8b949e}
-  .str{color:#ce9178; white-space:pre-wrap}
+  .str{color:#ce9178; white-space:pre-wrap; word-break:break-word}
   .num{color:#b5cea8}
   .bool{color:#4ec9b0}
   .nil{color:#c586c0}
@@ -84,6 +85,22 @@
   .children{margin-left:18px; border-left:1px dashed var(--border); padding-left:10px; margin-top:6px}
   .node-head{color:#8b949e}
   .node-meta{color:#8b949e; font-style:italic}
+
+  /* Per-card stat chip */
+  .chip-stat{font:600 11px/1 var(--mono); color:var(--muted); padding:4px 8px;
+             border:1px solid var(--border); border-radius:999px; white-space:nowrap}
+
+  /* Chat preview */
+  .chat-view{display:grid; gap:10px}
+  .chat-turn{border:1px solid var(--border); border-radius:10px; overflow:hidden; background:color-mix(in oklab, var(--panel) 96%, transparent)}
+  .chat-role{padding:6px 10px; background:var(--chip); font:700 11px/1.2 var(--mono);
+             text-transform:uppercase; letter-spacing:.6px; border-bottom:1px solid var(--border); color:var(--muted)}
+  .chat-role.role-user{color:var(--accent)}
+  .chat-role.role-assistant{color:var(--ok)}
+  .chat-role.role-system{color:var(--warn)}
+  .chat-role.role-tool, .chat-role.role-function{color:#c586c0}
+  .chat-content{padding:10px 12px; white-space:pre-wrap; word-break:break-word;
+                font-family:var(--mono); font-size:12.5px}
 
   /* Toast */
   .toast{
@@ -130,6 +147,7 @@
 
         <button class="btn" id="expandAll">Expand all</button>
         <button class="btn" id="collapseAll">Collapse all</button>
+        <button class="btn" id="exportBtn" title="Download visible (filtered) items as JSONL — useful for slicing training subsets">Export</button>
         <input id="search" class="search" type="search" placeholder="Filter (simple text match)..." />
       </div>
     </div>
@@ -182,6 +200,7 @@
     linesTotal: 0,
     parsedCount: 0,
     errorCount: 0,
+    totalChars: 0,
     modeNewlines: false,
     mode: 'unknown',     // 'json' | 'jsonl' | 'unknown'
     quickCopy: false,
@@ -214,15 +233,62 @@
   function updateStats(){
     if (!state.fileName) {$stats.textContent = 'No file loaded'; return;}
     const modeTxt = state.mode === 'json' ? 'JSON' : state.mode === 'jsonl' ? 'JSONL' : 'Auto';
+    const itemWord = state.linesTotal === 1 ? 'item' : 'items';
+    const errWord = state.errorCount === 1 ? 'error' : 'errors';
+    const tokens = estimateTokens(state.totalChars);
     $stats.textContent =
-      `${state.fileName} • ${modeTxt} • ${state.linesTotal} item(s) • ` +
-      `${state.parsedCount} ok • ${state.errorCount} errors`;
+      `${state.fileName} • ${modeTxt} • ${state.linesTotal} ${itemWord} • ` +
+      `${state.parsedCount} ok • ${state.errorCount} ${errWord} • ` +
+      `${fmtNum(state.totalChars)} chars • ~${fmtNum(tokens)} tok`;
   }
 
   /* ---------- Path helpers ---------- */
   const identRe = /^[A-Za-z_$][\w$]*$/;
-  const pathKey = (k) => identRe.test(k) ? `.${k}` : `["${String(k).replaceAll('"','\\"')}"]`;
+  const pathKey = (k) => identRe.test(k)
+    ? `.${k}`
+    : `["${String(k).replaceAll('\\','\\\\').replaceAll('"','\\"')}"]`;
   const pathIdx = (i) => `[${i}]`;
+
+  /* ---------- LLM helpers ---------- */
+  // Rough token estimate (chars / 4 is a common BPE heuristic).
+  const estimateTokens = (chars) => chars <= 0 ? 0 : Math.max(1, Math.round(chars / 4));
+  const fmtNum = (n) => n.toLocaleString();
+
+  function detectChatFormat(parsed){
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    // OpenAI / Anthropic-style: {messages:[{role, content}]}
+    if (Array.isArray(parsed.messages) && parsed.messages.length &&
+        parsed.messages.every(m => m && typeof m === 'object' && 'role' in m && 'content' in m)){
+      return parsed.messages.map(m => ({ role: m.role, content: m.content }));
+    }
+    // ShareGPT-style: {conversations:[{from, value}]}
+    if (Array.isArray(parsed.conversations) && parsed.conversations.length &&
+        parsed.conversations.every(m => m && typeof m === 'object' &&
+          ('from' in m || 'role' in m) && ('value' in m || 'content' in m))){
+      return parsed.conversations.map(m => ({
+        role: m.role ?? m.from ?? 'unknown',
+        content: m.content ?? m.value
+      }));
+    }
+    return null;
+  }
+
+  function renderChatView(messages){
+    const wrap = el('div','chat-view');
+    for (const m of messages){
+      const role = String(m.role ?? 'unknown');
+      const turn = el('div','chat-turn');
+      const r = el('div','chat-role', role);
+      r.classList.add('role-' + role.toLowerCase().replace(/[^a-z0-9_-]/g,''));
+      const c = el('div','chat-content');
+      c.textContent = (typeof m.content === 'string')
+        ? m.content
+        : JSON.stringify(m.content, null, 2);
+      turn.append(r, c);
+      wrap.append(turn);
+    }
+    return wrap;
+  }
 
   /* ---------- JSON tree rendering ---------- */
   const makeStringSpan = (v, path) => {
@@ -262,17 +328,24 @@
     }
   };
 
-  function renderNode(value, keyLabel=null, path='$'){
+  function makeKeyEl(keyLabel, path, isArrayIndex){
+    // Array indexes render as "0:" (numeric, unquoted); object keys as `"name":`
+    const cls = isArrayIndex ? 'idx' : 'key';
+    const text = isArrayIndex ? String(keyLabel) : ('"' + keyLabel + '"');
+    const keyEl = el('span', cls, text);
+    keyEl.dataset.key = String(keyLabel);
+    keyEl.dataset.path = path;
+    keyEl.dataset.kind = 'key';
+    return keyEl;
+  }
+
+  function renderNode(value, keyLabel=null, path='$', isArrayIndex=false){
     const container = el('div','tree');
 
     if (value === null || typeof value !== 'object'){
       const row = el('div','kv');
       if (keyLabel !== null){
-        const keyEl = el('span','key','"'+keyLabel+'"');
-        keyEl.dataset.key = keyLabel;
-        keyEl.dataset.path = path;
-        keyEl.dataset.kind = 'key';
-        row.append(keyEl, el('span','pun',': '));
+        row.append(makeKeyEl(keyLabel, path, isArrayIndex), el('span','pun',': '));
       }
       row.append(renderPrimitive(value, path));
       container.append(row);
@@ -290,11 +363,7 @@
     const meta = isArr ? `${entries.length} item${entries.length!==1?'s':''}` : `${entries.length} key${entries.length!==1?'s':''}`;
 
     if (keyLabel !== null){
-      const keyEl = el('span','key','"'+keyLabel+'"');
-      keyEl.dataset.key = keyLabel;
-      keyEl.dataset.path = path;
-      keyEl.dataset.kind = 'key';
-      summary.append(caret, keyEl, el('span','pun',': '));
+      summary.append(caret, makeKeyEl(keyLabel, path, isArrayIndex), el('span','pun',': '));
     } else {
       summary.append(caret);
     }
@@ -309,7 +378,7 @@
     const kids = el('div','children');
     for (let [k,v] of entries){
       const childPath = isArr ? (path + pathIdx(k)) : (path + pathKey(k));
-      kids.append(renderNode(v, isArr ? k : k, childPath));
+      kids.append(renderNode(v, k, childPath, isArr));
     }
     details.append(kids);
     container.append(details);
@@ -324,10 +393,22 @@
 
   function cardForItem(idx, rawText, parsed, error, labelPrefix='Item'){
     const card = el('div','card');
+    // Single-line JSON, suitable for JSONL export (falls back to raw on parse error)
+    const exportLine = error ? rawText.replace(/\r?\n/g,' ') : JSON.stringify(parsed);
+    card.dataset.exportRaw = exportLine;
+
     const head = el('div','card-head');
     const left = el('div','row');
     const ln = el('span','ln', `${labelPrefix} ${idx+1}`);
     left.append(ln);
+
+    // Per-card char + token estimate (uses single-line JSON for consistency)
+    const charCount = (error ? rawText : JSON.stringify(parsed)).length;
+    const tokens = estimateTokens(charCount);
+    const stat = el('span','chip-stat', `${fmtNum(charCount)} chars • ~${fmtNum(tokens)} tok`);
+    stat.title = 'Character count and rough token estimate (chars / 4)';
+    left.append(stat);
+
     const toolbar = el('div','toolbar');
 
     const copyBtn = el('button','mini-btn','Copy raw');
@@ -367,18 +448,43 @@
 
     toolbar.append(copyBtn, copyJsonBtn, expandBtn, collapseBtn);
 
-    head.append(left);
-    head.append(error ? el('span','badge-err','Parse error') : el('span','badge-ok','OK'));
-    head.append(toolbar);
-
     const body = el('div','body');
+    let treeContent;
     if (error){
       const pre = el('pre','tree');
       pre.textContent = rawText;
-      body.append(pre);
+      treeContent = pre;
     } else {
-      body.append(renderNode(parsed, null, '$'));
+      treeContent = renderNode(parsed, null, '$');
     }
+    body.append(treeContent);
+
+    // Chat-format preview toggle (LLM training datasets)
+    if (!error){
+      const chat = detectChatFormat(parsed);
+      if (chat && chat.length){
+        const chatBtn = el('button','mini-btn','Chat view');
+        chatBtn.title = 'Render as a conversation (detected messages/conversations field)';
+        let chatEl = null;
+        let showingChat = false;
+        chatBtn.addEventListener('click', () => {
+          showingChat = !showingChat;
+          if (showingChat){
+            if (!chatEl) chatEl = renderChatView(chat);
+            body.replaceChildren(chatEl);
+            chatBtn.textContent = 'Tree view';
+          } else {
+            body.replaceChildren(treeContent);
+            chatBtn.textContent = 'Chat view';
+          }
+        });
+        toolbar.append(chatBtn);
+      }
+    }
+
+    head.append(left);
+    head.append(error ? el('span','badge-err','Parse error') : el('span','badge-ok','OK'));
+    head.append(toolbar);
 
     const headerWrap = el('header'); headerWrap.append(head);
     card.append(headerWrap, body);
@@ -389,6 +495,7 @@
     $list.innerHTML = '';
     $filterInfo.textContent = '';
     state.linesTotal = state.parsedCount = state.errorCount = 0;
+    state.totalChars = 0;
     state.mode = 'unknown';
     updateStats();
   }
@@ -402,7 +509,12 @@
       card.classList.toggle('hidden', !show);
       if (show) visible++;
     });
-    $filterInfo.textContent = q ? `${visible} matching item(s)` : '';
+    if (!q){
+      $filterInfo.textContent = '';
+    } else {
+      const word = visible === 1 ? 'item' : 'items';
+      $filterInfo.textContent = `${visible} matching ${word}`;
+    }
   }
 
   // Try full-JSON first (for .json files and also as a fallback for others)
@@ -425,12 +537,17 @@
           try { return JSON.stringify(item); } catch { return ''; }
         })();
         state.parsedCount++;
+        state.totalChars += itemRaw.length;
         frag.append(cardForItem(idx, itemRaw, item, false, 'Item'));
       });
     } else {
       state.mode = 'json';
       state.linesTotal = 1;
       state.parsedCount++;
+      const itemRaw = (() => {
+        try { return JSON.stringify(value); } catch { return originalText; }
+      })();
+      state.totalChars += itemRaw.length;
       frag.append(cardForItem(0, originalText, value, false, 'Item'));
     }
     $list.replaceChildren(frag);
@@ -440,22 +557,23 @@
   function renderAsJSONL(text){
     const lines = text.split(/\r?\n/);
     state.mode = 'jsonl';
-    state.linesTotal = lines.length;
 
     const frag = document.createDocumentFragment();
-    lines.forEach((line, idx) => {
-      if (line.trim() === ''){
-        state.errorCount++;
-        frag.append(cardForItem(idx, line, null, true, 'Line'));
-        return;
-      }
+    // Use the actual file line number for the label (so error reports point to
+    // the right line even when blanks are skipped).
+    lines.forEach((line, lineIdx) => {
+      // Silently skip blank lines (very common: trailing newline at EOF).
+      if (line.trim() === '') return;
+      state.linesTotal++;
       try{
         const parsed = JSON.parse(line);
         state.parsedCount++;
-        frag.append(cardForItem(idx, line, parsed, false, 'Line'));
+        state.totalChars += line.length;
+        frag.append(cardForItem(lineIdx, line, parsed, false, 'Line'));
       }catch(_){
         state.errorCount++;
-        frag.append(cardForItem(idx, line, null, true, 'Line'));
+        state.totalChars += line.length;
+        frag.append(cardForItem(lineIdx, line, null, true, 'Line'));
       }
     });
     $list.replaceChildren(frag);
@@ -491,6 +609,31 @@
   });
   $collapseAll.addEventListener('click', () => {
     document.querySelectorAll('details.tree-node').forEach(d => d.open = false);
+  });
+
+  /* ---------- Export visible (filtered) items as JSONL ---------- */
+  const $exportBtn = document.getElementById('exportBtn');
+  $exportBtn.addEventListener('click', () => {
+    const lines = [];
+    $list.querySelectorAll('.card:not(.hidden)').forEach(c => {
+      const r = c.dataset.exportRaw;
+      if (r != null && r !== '') lines.push(r);
+    });
+    if (!lines.length){
+      showToast('Nothing to export');
+      return;
+    }
+    const blob = new Blob([lines.join('\n') + '\n'], { type: 'application/jsonl' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const base = (state.fileName || 'export').replace(/\.(json|jsonl|txt|log)$/i, '');
+    a.href = url;
+    a.download = `${base}-filtered.jsonl`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast(`Exported ${lines.length} item${lines.length===1?'':'s'}`);
   });
 
   /* ---------- Drag & drop ---------- */
@@ -542,9 +685,9 @@
     const t = e.target;
     if (!(t instanceof HTMLElement)) return;
 
-    // value spans
+    // value spans (note: '.idx' is array-index key — handled as a key, not a value)
     const valueEl = t.closest('.str,.num,.bool,.nil,.pun');
-    const keyEl = t.closest('.key');
+    const keyEl = t.closest('.key,.idx');
     const summaryEl = t.closest('summary');
 
     try {
