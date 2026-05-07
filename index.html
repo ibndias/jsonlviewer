@@ -201,7 +201,7 @@
 
         <label class="switch" title="When ON, render '\n' inside string values as real line breaks">
           <span>Render '\n'</span>
-          <input id="nlToggle" type="checkbox" />
+          <input id="nlToggle" type="checkbox" checked />
         </label>
 
         <label class="switch" title="Toggle dark mode">
@@ -322,7 +322,7 @@
   let state = {
     fileName: '',
     mode: 'unknown',          // 'json' | 'jsonl' | 'unknown'
-    modeNewlines: false,
+    modeNewlines: true,
     quickCopy: false,
     items: [],                // canonical data (file order)
     schema: new Map(),        // top-level key -> count
