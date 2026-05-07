@@ -25,9 +25,14 @@
   html,body{height:100%}
   body{margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}
 
-  /* Sticky top header — stays visible while scrolling */
-  body > header{position:sticky; top:0; z-index:20; backdrop-filter:saturate(1.2) blur(6px);
-         background:color-mix(in oklab, var(--bg) 80%, transparent); border-bottom:1px solid var(--border)}
+  /* Sticky top header — stays visible while scrolling.
+     Solid background + high z-index so it always paints above cards. */
+  body > header{
+    position:sticky; top:0; z-index:100;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
+    box-shadow:0 1px 0 var(--border), 0 6px 14px -10px rgba(0,0,0,.25);
+  }
   .wrap{max-width:1280px; margin:0 auto; padding:14px 16px;}
   .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
   h1{font-size:18px; margin:0; letter-spacing:.3px}
