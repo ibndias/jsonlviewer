@@ -16,7 +16,7 @@
     --ok:#3ecf8e; --warn:#ffb454; --err:#ff6b6b; --border:#1e2630; --chip:#1a212b;
   }
   @media (prefers-color-scheme: dark){
-    :root:not([data-theme]){ 
+    :root:not([data-theme]){
       --bg:#0b0d10; --panel:#11151a; --muted:#8796a8; --fg:#e7ecf3; --accent:#4da3ff;
       --ok:#3ecf8e; --warn:#ffb454; --err:#ff6b6b; --border:#1e2630; --chip:#1a212b;
     }
@@ -24,17 +24,25 @@
 
   html,body{height:100%}
   body{margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}
-  header{position:sticky; top:0; z-index:10; backdrop-filter:saturate(1.2) blur(6px);
-         background:color-mix(in oklab, var(--bg) 70%, transparent); border-bottom:1px solid var(--border)}
-  .wrap{max-width:1100px; margin:0 auto; padding:14px 16px;}
+
+  /* Sticky top header — stays visible while scrolling.
+     Solid background + high z-index so it always paints above cards. */
+  body > header{
+    position:sticky; top:0; z-index:100;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
+    box-shadow:0 1px 0 var(--border), 0 6px 14px -10px rgba(0,0,0,.25);
+  }
+  .wrap{max-width:1280px; margin:0 auto; padding:14px 16px;}
   .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
   h1{font-size:18px; margin:0; letter-spacing:.3px}
   .chip{background:var(--chip); border:1px solid var(--border); color:var(--muted);
         padding:6px 10px; border-radius:999px; font-size:12px}
   .controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
   .btn, .file-btn{border:1px solid var(--border); background:var(--panel); color:var(--fg);
-        padding:9px 12px; border-radius:10px; cursor:pointer; font-weight:600}
+        padding:9px 12px; border-radius:10px; cursor:pointer; font-weight:600; font-size:13px}
   .btn:hover, .file-btn:hover{border-color:color-mix(in oklab, var(--accent) 40%, var(--border))}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
   .file-input{display:none}
   .switch{display:inline-flex; gap:10px; align-items:center; user-select:none; cursor:pointer;
           padding:6px 10px; border:1px solid var(--border); border-radius:999px; background:var(--panel)}
@@ -43,29 +51,85 @@
   .switch input::after{content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:.2s}
   .switch input:checked::after{left:18px}
   .search{min-width:220px; flex:1 1 260px; background:var(--panel); border:1px solid var(--border);
-          color:var(--fg); border-radius:10px; padding:10px 12px; outline:none}
-  main{max-width:1100px; margin:16px auto; padding:0 16px 40px}
+          color:var(--fg); border-radius:10px; padding:10px 12px; outline:none; font-size:13px}
+  .num-input{width:90px; background:var(--panel); border:1px solid var(--border);
+             color:var(--fg); border-radius:10px; padding:8px 10px; outline:none; font-size:13px;
+             font-family:var(--mono)}
+  .select{background:var(--panel); border:1px solid var(--border); color:var(--fg);
+          border-radius:10px; padding:9px 10px; font-size:13px; cursor:pointer}
+  .control-group{display:inline-flex; align-items:center; gap:6px;
+                 padding:4px 8px; border:1px solid var(--border); border-radius:10px; background:var(--panel)}
+  .control-group label{font-size:12px; color:var(--muted); font-weight:600}
+
+  main{padding:0 16px 40px; max-width:1280px; margin:16px auto 0}
+
+  /* Two-column layout: sidebar | main column */
+  .layout{display:grid; grid-template-columns:240px 1fr; gap:16px; align-items:start}
+  @media (max-width: 860px){
+    .layout{grid-template-columns:1fr}
+    .sidebar{position:static !important; max-height:none !important}
+  }
+
+  /* Sidebar */
+  .sidebar{position:sticky; top:84px; max-height:calc(100vh - 100px); overflow:auto;
+           background:var(--panel); border:1px solid var(--border); border-radius:var(--round);
+           padding:12px}
+  .side-section{margin-bottom:14px}
+  .side-section:last-child{margin-bottom:0}
+  .side-title{font:700 11px/1.2 var(--mono); text-transform:uppercase; letter-spacing:.6px;
+              color:var(--muted); margin:0 0 8px}
+  .side-keys{display:flex; flex-wrap:wrap; gap:6px}
+  .key-chip{display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+            background:var(--chip); border:1px solid var(--border); color:var(--fg);
+            border-radius:999px; padding:4px 10px; font:600 12px/1.2 var(--mono); transition:.12s}
+  .key-chip:hover{border-color:color-mix(in oklab, var(--accent) 40%, var(--border))}
+  .key-chip.selected{background:color-mix(in oklab, var(--accent) 18%, var(--panel));
+                     border-color:var(--accent); color:var(--fg)}
+  .key-chip .count{color:var(--muted); font-weight:500}
+  .key-chip.selected .count{color:color-mix(in oklab, var(--accent) 70%, var(--fg))}
+  .side-empty{color:var(--muted); font-size:12px}
+  .btn-link{background:transparent; border:0; color:var(--accent); cursor:pointer; font:600 12px/1 system-ui; padding:0}
+  .btn-link:hover{text-decoration:underline}
+
+  /* Drop zone */
   .drop{border:1px dashed var(--border); background:color-mix(in oklab, var(--panel) 80%, transparent);
         border-radius:var(--round); padding:22px; text-align:center; color:var(--muted);
-        transition:.15s; margin-bottom:16px}
+        transition:.15s; margin-bottom:16px; cursor:pointer}
   .drop.active{border-color:var(--accent); color:var(--fg); background:color-mix(in oklab, var(--panel) 90%, transparent)}
+  /* Compact: collapsed bar after a file is loaded */
+  .drop.compact{padding:8px 12px; font-size:12px; text-align:left}
+  .drop.compact .drop-tips, .drop.compact .drop-sub{display:none}
+
   .list{display:grid; gap:12px}
-  .card{background:var(--panel); border:1px solid var(--border); border-radius:var(--round); overflow:hidden}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:var(--round); overflow:hidden;
+        scroll-margin-top:90px; transition:opacity .15s}
+  .card.excluded{opacity:.4}
+  .card.excluded .body{filter:grayscale(.6)}
+  .card.active{border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in oklab, var(--accent) 25%, transparent)}
   .card header{position:relative; background:transparent; border:0; padding:0; backdrop-filter:none}
-  .card-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border)}
+  .card-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border); flex-wrap:wrap}
   .ln{font-weight:700; color:var(--muted)}
   .badge-ok{color:var(--ok); font-weight:700}
   .badge-err{color:var(--err); font-weight:700}
+  .badge-excluded{color:var(--warn); font-weight:700}
   .body{padding:12px}
-  .toolbar{display:flex; gap:8px; align-items:center}
+  .toolbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
   .mini-btn{font:600 11px/1 var(--mono); letter-spacing:.2px; padding:6px 8px; border-radius:8px;
             border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer}
   .mini-btn:hover{color:var(--fg); border-color:color-mix(in oklab, var(--accent) 40%, var(--border))}
+  .mini-btn.danger:hover{color:var(--err); border-color:color-mix(in oklab, var(--err) 40%, var(--border))}
+  .mini-btn.active{color:var(--fg); border-color:var(--accent)}
   .hidden{display:none !important}
-  .footer{margin-top:10px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between}
-  .credit{opacity:.9}
+
+  /* Pagination */
+  .load-more{margin:14px 0; display:flex; justify-content:center; gap:10px; align-items:center; color:var(--muted); font-size:12px}
+  .load-more .btn{padding:8px 14px}
+
+  .footer{margin-top:14px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; font-size:12px}
   .footer a{color:inherit; text-decoration:none}
   .footer a:hover{color:var(--accent)}
+  .kbd-hint{font-family:var(--mono); font-size:11px; opacity:.8}
+  .kbd-hint kbd{display:inline-block; padding:1px 5px; border:1px solid var(--border); border-bottom-width:2px; border-radius:4px; background:var(--chip); margin:0 1px}
 
   /* Tree view */
   .tree{font-family:var(--mono); font-size:12.5px}
@@ -85,6 +149,10 @@
   .children{margin-left:18px; border-left:1px dashed var(--border); padding-left:10px; margin-top:6px}
   .node-head{color:#8b949e}
   .node-meta{color:#8b949e; font-style:italic}
+  /* When a node is expanded, the "… 3 keys" preview and trailing brace are
+     redundant — children below show the structure. */
+  details.tree-node[open] > summary .node-meta,
+  details.tree-node[open] > summary .pun-close{display:none}
 
   /* Per-card stat chip */
   .chip-stat{font:600 11px/1 var(--mono); color:var(--muted); padding:4px 8px;
@@ -92,7 +160,8 @@
 
   /* Chat preview */
   .chat-view{display:grid; gap:10px}
-  .chat-turn{border:1px solid var(--border); border-radius:10px; overflow:hidden; background:color-mix(in oklab, var(--panel) 96%, transparent)}
+  .chat-turn{border:1px solid var(--border); border-radius:10px; overflow:hidden;
+             background:color-mix(in oklab, var(--panel) 96%, transparent)}
   .chat-role{padding:6px 10px; background:var(--chip); font:700 11px/1.2 var(--mono);
              text-transform:uppercase; letter-spacing:.6px; border-bottom:1px solid var(--border); color:var(--muted)}
   .chat-role.role-user{color:var(--accent)}
@@ -131,79 +200,148 @@
         </label>
 
         <label class="switch" title="When ON, render '\n' inside string values as real line breaks">
-          <span class="muted">Render '\n' as line breaks</span>
-          <input id="nlToggle" type="checkbox" />
+          <span>Render '\n'</span>
+          <input id="nlToggle" type="checkbox" checked />
         </label>
 
         <label class="switch" title="Toggle dark mode">
-          <span class="muted">Dark mode</span>
+          <span>Dark</span>
           <input id="themeToggle" type="checkbox" />
         </label>
 
+        <label class="switch" title="Colorize each key name with its own color so repeated fields are easy to scan">
+          <span>Colorize keys</span>
+          <input id="colorizeToggle" type="checkbox" />
+        </label>
+
         <label class="switch" title="Quick Copy: click value=copy JSON value; click key=copy key; Alt-click=copy JSON path; Ctrl/Cmd+click summary=copy node JSON">
-          <span class="muted">Quick Copy</span>
+          <span>Quick Copy</span>
           <input id="quickCopyToggle" type="checkbox" />
         </label>
 
-        <button class="btn" id="expandAll">Expand all</button>
-        <button class="btn" id="collapseAll">Collapse all</button>
-        <button class="btn" id="exportBtn" title="Download visible (filtered) items as JSONL — useful for slicing training subsets">Export</button>
-        <input id="search" class="search" type="search" placeholder="Filter (simple text match)..." />
+        <button class="btn" id="expandAll" title="Expand all (E)">Expand all</button>
+        <button class="btn" id="collapseAll" title="Collapse all (C)">Collapse all</button>
+        <button class="btn" id="exportBtn" title="Download visible (filtered, non-excluded) items as JSONL">Export</button>
+
+        <div class="control-group" title="Sort items by token count">
+          <label for="sortSel">Sort</label>
+          <select class="select" id="sortSel">
+            <option value="default">file order</option>
+            <option value="tokens-desc">tokens ↓</option>
+            <option value="tokens-asc">tokens ↑</option>
+            <option value="chars-desc">chars ↓</option>
+            <option value="chars-asc">chars ↑</option>
+          </select>
+        </div>
+
+        <div class="control-group" title="Filter by token count range">
+          <label>Tokens</label>
+          <input class="num-input" id="minTokens" type="number" min="0" placeholder="min" />
+          <span style="color:var(--muted)">–</span>
+          <input class="num-input" id="maxTokens" type="number" min="0" placeholder="max" />
+        </div>
+
+        <input id="search" class="search" type="search" placeholder="Filter (text match) — press / to focus" />
       </div>
     </div>
   </header>
 
-  <main>
-    <div id="drop" class="drop">
-      <div><strong>Drag & drop</strong> a <code>.json</code> or <code>.jsonl</code> file here, or click <em>Open</em>.</div>
-      <div class="muted" style="margin-top:4px">
-        JSON: arrays → items as cards; object/primitive → single card. If full-JSON parse fails, viewer falls back to JSONL mode.
+  <main class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="side-section">
+        <div class="side-title">Schema · top-level keys</div>
+        <div class="side-keys" id="schemaKeys">
+          <div class="side-empty">Load a file to see keys.</div>
+        </div>
       </div>
-      <div class="muted" style="margin-top:6px">
-        <strong>Quick Copy tips:</strong> click value = JSON value; click key = key name; <kbd>Alt</kbd>+click = JSON path; <kbd>Ctrl/Cmd</kbd>+click a summary = node JSON.
+      <div class="side-section" id="sideActions" style="display:none">
+        <button class="btn-link" id="clearKeysBtn">clear key filters</button>
       </div>
-    </div>
-    <div class="list" id="list"></div>
-    <div class="footer wrap" id="footer">
-      <span id="filterInfo"></span>
-      <span class="credit">JSON/JSONL Viewer — by <a href="https://github.com/ibndias" target="_blank" rel="noopener"><strong>ibndias</strong></a></span>
-    </div>
+      <div class="side-section">
+        <div class="side-title">Tips</div>
+        <div class="kbd-hint">
+          <div><kbd>/</kbd> focus search</div>
+          <div><kbd>n</kbd>/<kbd>p</kbd> next / prev item</div>
+          <div><kbd>e</kbd>/<kbd>c</kbd> expand / collapse active</div>
+          <div><kbd>x</kbd> toggle exclude active</div>
+          <div><kbd>Esc</kbd> clear search</div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="main-col">
+      <div id="drop" class="drop">
+        <div class="drop-main"><strong>Drag & drop</strong> a <code>.json</code> or <code>.jsonl</code> file here, or click <em>Open</em>.</div>
+        <div class="drop-sub muted" style="margin-top:4px">
+          JSON: arrays → items as cards; object/primitive → single card. If full-JSON parse fails, falls back to JSONL mode.
+        </div>
+        <div class="drop-tips muted" style="margin-top:6px">
+          <strong>Quick Copy tips:</strong> click value = JSON value; click key = key name; <kbd>Alt</kbd>+click = JSON path; <kbd>Ctrl/Cmd</kbd>+click a summary = node JSON.
+        </div>
+      </div>
+      <div class="list" id="list"></div>
+      <div class="load-more" id="loadMore"></div>
+      <div class="footer" id="footer">
+        <span id="filterInfo"></span>
+        <span class="credit">JSON/JSONL Viewer — by <a href="https://github.com/ibndias" target="_blank" rel="noopener"><strong>ibndias</strong></a></span>
+      </div>
+    </section>
   </main>
 
   <div id="toast" class="toast"></div>
 
 <script>
 (() => {
+  /* ---------- DOM helpers ---------- */
   const el = (tag, cls, text) => {
     const n = document.createElement(tag);
     if (cls) n.className = cls;
     if (text != null) n.textContent = text;
     return n;
   };
+  const $ = id => document.getElementById(id);
 
-  const $stats = document.getElementById('stats');
-  const $list  = document.getElementById('list');
-  const $drop  = document.getElementById('drop');
-  const $file  = document.getElementById('fileInput');
-  const $toggle = document.getElementById('nlToggle');
-  const $themeToggle = document.getElementById('themeToggle');
-  const $quickCopy = document.getElementById('quickCopyToggle');
-  const $search = document.getElementById('search');
-  const $footer = document.getElementById('footer');
-  const $expandAll = document.getElementById('expandAll');
-  const $collapseAll = document.getElementById('collapseAll');
-  const $filterInfo = document.getElementById('filterInfo');
-  const $toast = document.getElementById('toast');
+  const $stats       = $('stats');
+  const $list        = $('list');
+  const $drop        = $('drop');
+  const $file        = $('fileInput');
+  const $nl          = $('nlToggle');
+  const $themeToggle = $('themeToggle');
+  const $colorize    = $('colorizeToggle');
+  const $quickCopy   = $('quickCopyToggle');
+  const $search      = $('search');
+  const $expandAll   = $('expandAll');
+  const $collapseAll = $('collapseAll');
+  const $filterInfo  = $('filterInfo');
+  const $toast       = $('toast');
+  const $exportBtn   = $('exportBtn');
+  const $sortSel     = $('sortSel');
+  const $minTokens   = $('minTokens');
+  const $maxTokens   = $('maxTokens');
+  const $loadMore    = $('loadMore');
+  const $sidebar     = $('sidebar');
+  const $schemaKeys  = $('schemaKeys');
+  const $sideActions = $('sideActions');
+  const $clearKeys   = $('clearKeysBtn');
 
+  /* ---------- State ---------- */
   let state = {
     fileName: '',
-    linesTotal: 0,
-    parsedCount: 0,
-    errorCount: 0,
-    totalChars: 0,
-    modeNewlines: false,
-    mode: 'unknown',     // 'json' | 'jsonl' | 'unknown'
+    mode: 'unknown',          // 'json' | 'jsonl' | 'unknown'
+    modeNewlines: true,
+    colorize: false,
     quickCopy: false,
+    items: [],                // canonical data (file order)
+    schema: new Map(),        // top-level key -> count
+    selectedKeys: new Set(),  // AND-filter on item.topKeys
+    searchQuery: '',
+    minTokens: null,
+    maxTokens: null,
+    sortMode: 'default',      // 'default' | 'tokens-asc/desc' | 'chars-asc/desc'
+    pageSize: 200,
+    pagesShown: 1,
+    viewItems: [],            // current filter+sort result (pre-pagination)
+    activeOrigIdx: -1,        // currently focused item (for keyboard nav)
   };
 
   /* ---------- Toast ---------- */
@@ -215,8 +353,8 @@
     toastTimer = setTimeout(()=> $toast.classList.remove('show'), 2100);
   }
 
-  /* ---------- Theme handling ---------- */
-  const savedTheme = localStorage.getItem('jsonl_viewer_theme'); // 'light' | 'dark'
+  /* ---------- Theme ---------- */
+  const savedTheme = localStorage.getItem('jsonl_viewer_theme');
   if (savedTheme === 'dark' || savedTheme === 'light') {
     document.documentElement.setAttribute('data-theme', savedTheme);
     $themeToggle.checked = (savedTheme === 'dark');
@@ -228,19 +366,9 @@
     const theme = $themeToggle.checked ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('jsonl_viewer_theme', theme);
+    // Re-derive key colors against the new background.
+    if (state.colorize) applyColorize();
   });
-
-  function updateStats(){
-    if (!state.fileName) {$stats.textContent = 'No file loaded'; return;}
-    const modeTxt = state.mode === 'json' ? 'JSON' : state.mode === 'jsonl' ? 'JSONL' : 'Auto';
-    const itemWord = state.linesTotal === 1 ? 'item' : 'items';
-    const errWord = state.errorCount === 1 ? 'error' : 'errors';
-    const tokens = estimateTokens(state.totalChars);
-    $stats.textContent =
-      `${state.fileName} • ${modeTxt} • ${state.linesTotal} ${itemWord} • ` +
-      `${state.parsedCount} ok • ${state.errorCount} ${errWord} • ` +
-      `${fmtNum(state.totalChars)} chars • ~${fmtNum(tokens)} tok`;
-  }
 
   /* ---------- Path helpers ---------- */
   const identRe = /^[A-Za-z_$][\w$]*$/;
@@ -250,18 +378,15 @@
   const pathIdx = (i) => `[${i}]`;
 
   /* ---------- LLM helpers ---------- */
-  // Rough token estimate (chars / 4 is a common BPE heuristic).
   const estimateTokens = (chars) => chars <= 0 ? 0 : Math.max(1, Math.round(chars / 4));
   const fmtNum = (n) => n.toLocaleString();
 
   function detectChatFormat(parsed){
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-    // OpenAI / Anthropic-style: {messages:[{role, content}]}
     if (Array.isArray(parsed.messages) && parsed.messages.length &&
         parsed.messages.every(m => m && typeof m === 'object' && 'role' in m && 'content' in m)){
       return parsed.messages.map(m => ({ role: m.role, content: m.content }));
     }
-    // ShareGPT-style: {conversations:[{from, value}]}
     if (Array.isArray(parsed.conversations) && parsed.conversations.length &&
         parsed.conversations.every(m => m && typeof m === 'object' &&
           ('from' in m || 'role' in m) && ('value' in m || 'content' in m))){
@@ -281,9 +406,7 @@
       const r = el('div','chat-role', role);
       r.classList.add('role-' + role.toLowerCase().replace(/[^a-z0-9_-]/g,''));
       const c = el('div','chat-content');
-      c.textContent = (typeof m.content === 'string')
-        ? m.content
-        : JSON.stringify(m.content, null, 2);
+      c.textContent = (typeof m.content === 'string') ? m.content : JSON.stringify(m.content, null, 2);
       turn.append(r, c);
       wrap.append(turn);
     }
@@ -329,14 +452,13 @@
   };
 
   function makeKeyEl(keyLabel, path, isArrayIndex){
-    // Array indexes render as "0:" (numeric, unquoted); object keys as `"name":`
     const cls = isArrayIndex ? 'idx' : 'key';
     const text = isArrayIndex ? String(keyLabel) : ('"' + keyLabel + '"');
-    const keyEl = el('span', cls, text);
-    keyEl.dataset.key = String(keyLabel);
-    keyEl.dataset.path = path;
-    keyEl.dataset.kind = 'key';
-    return keyEl;
+    const k = el('span', cls, text);
+    k.dataset.key = String(keyLabel);
+    k.dataset.path = path;
+    k.dataset.kind = 'key';
+    return k;
   }
 
   function renderNode(value, keyLabel=null, path='$', isArrayIndex=false){
@@ -358,25 +480,30 @@
     const details = el('details','tree-node'); details.open = true;
     const summary = el('summary');
     const caret = el('span','caret');
-    const headOpen = isArr ? '[' : '{';
+    const headOpen  = isArr ? '[' : '{';
     const headClose = isArr ? ']' : '}';
-    const meta = isArr ? `${entries.length} item${entries.length!==1?'s':''}` : `${entries.length} key${entries.length!==1?'s':''}`;
+    const meta = isArr
+      ? `${entries.length} item${entries.length!==1?'s':''}`
+      : `${entries.length} key${entries.length!==1?'s':''}`;
 
     if (keyLabel !== null){
       summary.append(caret, makeKeyEl(keyLabel, path, isArrayIndex), el('span','pun',': '));
     } else {
       summary.append(caret);
     }
-    // allow copying whole node via summary
     summary.dataset.kind = 'node';
     summary.dataset.path = path;
     try { summary.dataset.json = JSON.stringify(value); } catch { /* ignore */ }
 
-    summary.append(el('span','pun', headOpen), el('span','node-meta',' … ' + meta), el('span','pun', headClose));
+    summary.append(
+      el('span','pun', headOpen),
+      el('span','node-meta',' … ' + meta),
+      el('span','pun pun-close', headClose)
+    );
     details.append(summary);
 
     const kids = el('div','children');
-    for (let [k,v] of entries){
+    for (let [k, v] of entries){
       const childPath = isArr ? (path + pathIdx(k)) : (path + pathKey(k));
       kids.append(renderNode(v, k, childPath, isArr));
     }
@@ -391,21 +518,68 @@
     });
   }
 
-  function cardForItem(idx, rawText, parsed, error, labelPrefix='Item'){
+  /* ---------- Colorize keys ---------- */
+  // Stable hue per key name (djb2 hash → hue).
+  function keyHue(name){
+    let h = 5381;
+    for (let i = 0; i < name.length; i++) h = ((h << 5) + h + name.charCodeAt(i)) | 0;
+    return Math.abs(h) % 360;
+  }
+  function isDarkTheme(){
+    const t = document.documentElement.getAttribute('data-theme');
+    if (t === 'dark') return true;
+    if (t === 'light') return false;
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function keyColor(name){
+    const hue = keyHue(name);
+    const lightness = isDarkTheme() ? 72 : 38;
+    return `hsl(${hue}, 70%, ${lightness}%)`;
+  }
+  function applyColorize(){
+    // Only color object keys; array indexes keep their dedicated color.
+    document.querySelectorAll('.key').forEach(el => {
+      if (state.colorize){
+        const k = el.dataset.key || '';
+        el.style.color = keyColor(k);
+      } else {
+        el.style.color = '';
+      }
+    });
+  }
+
+  /* ---------- Item construction ---------- */
+  function makeItem(fileIdx, prefix, rawText, parsed, error){
+    const exportRaw = error ? rawText.replace(/\r?\n/g,' ') : JSON.stringify(parsed);
+    const charCount = (error ? rawText : exportRaw).length;
+    let topKeys = [];
+    if (!error && parsed && typeof parsed === 'object' && !Array.isArray(parsed)){
+      topKeys = Object.keys(parsed);
+    }
+    return {
+      origIdx: 0,            // assigned after creation
+      fileIdx, prefix, rawText, parsed, error,
+      exportRaw, charCount,
+      tokens: estimateTokens(charCount),
+      searchText: rawText.toLowerCase(),
+      topKeys,
+      excluded: false,
+      _cardEl: null,
+    };
+  }
+
+  /* ---------- Card builder ---------- */
+  function buildCard(item){
     const card = el('div','card');
-    // Single-line JSON, suitable for JSONL export (falls back to raw on parse error)
-    const exportLine = error ? rawText.replace(/\r?\n/g,' ') : JSON.stringify(parsed);
-    card.dataset.exportRaw = exportLine;
+    card.dataset.origIdx = String(item.origIdx);
 
     const head = el('div','card-head');
     const left = el('div','row');
-    const ln = el('span','ln', `${labelPrefix} ${idx+1}`);
+    const ln = el('span','ln', `${item.prefix} ${item.fileIdx + 1}`);
     left.append(ln);
 
-    // Per-card char + token estimate (uses single-line JSON for consistency)
-    const charCount = (error ? rawText : JSON.stringify(parsed)).length;
-    const tokens = estimateTokens(charCount);
-    const stat = el('span','chip-stat', `${fmtNum(charCount)} chars • ~${fmtNum(tokens)} tok`);
+    const stat = el('span','chip-stat',
+      `${fmtNum(item.charCount)} chars • ~${fmtNum(item.tokens)} tok`);
     stat.title = 'Character count and rough token estimate (chars / 4)';
     left.append(stat);
 
@@ -415,18 +589,18 @@
     copyBtn.title = 'Copy the raw text for this item';
     copyBtn.addEventListener('click', async () => {
       try {
-        await navigator.clipboard.writeText(rawText);
+        await navigator.clipboard.writeText(item.rawText);
         copyBtn.textContent = 'Copied!';
         setTimeout(()=>copyBtn.textContent='Copy raw', 900);
         showToast('Copied raw text');
-      } catch { /* ignore */ }
+      } catch {}
     });
 
     const copyJsonBtn = el('button','mini-btn','Copy JSON');
     copyJsonBtn.title = 'Copy this item as pretty JSON';
     copyJsonBtn.addEventListener('click', async () => {
       try {
-        const txt = error ? rawText : JSON.stringify(parsed, null, 2);
+        const txt = item.error ? item.rawText : JSON.stringify(item.parsed, null, 2);
         await navigator.clipboard.writeText(txt);
         copyJsonBtn.textContent = 'Copied!';
         setTimeout(()=>copyJsonBtn.textContent='Copy JSON', 900);
@@ -446,22 +620,30 @@
       card.querySelectorAll('details.tree-node').forEach(d => d.open = false);
     });
 
-    toolbar.append(copyBtn, copyJsonBtn, expandBtn, collapseBtn);
+    const excludeBtn = el('button','mini-btn danger','Exclude');
+    excludeBtn.title = 'Exclude this item from Export (toggle)';
+    excludeBtn.addEventListener('click', () => {
+      item.excluded = !item.excluded;
+      syncExcluded(card, item, excludeBtn);
+      updateStats();
+      updateFilterInfo();
+    });
+
+    toolbar.append(copyBtn, copyJsonBtn, expandBtn, collapseBtn, excludeBtn);
 
     const body = el('div','body');
     let treeContent;
-    if (error){
+    if (item.error){
       const pre = el('pre','tree');
-      pre.textContent = rawText;
+      pre.textContent = item.rawText;
       treeContent = pre;
     } else {
-      treeContent = renderNode(parsed, null, '$');
+      treeContent = renderNode(item.parsed, null, '$');
     }
     body.append(treeContent);
 
-    // Chat-format preview toggle (LLM training datasets)
-    if (!error){
-      const chat = detectChatFormat(parsed);
+    if (!item.error){
+      const chat = detectChatFormat(item.parsed);
       if (chat && chat.length){
         const chatBtn = el('button','mini-btn','Chat view');
         chatBtn.title = 'Render as a conversation (detected messages/conversations field)';
@@ -473,9 +655,11 @@
             if (!chatEl) chatEl = renderChatView(chat);
             body.replaceChildren(chatEl);
             chatBtn.textContent = 'Tree view';
+            chatBtn.classList.add('active');
           } else {
             body.replaceChildren(treeContent);
             chatBtn.textContent = 'Chat view';
+            chatBtn.classList.remove('active');
           }
         });
         toolbar.append(chatBtn);
@@ -483,146 +667,306 @@
     }
 
     head.append(left);
-    head.append(error ? el('span','badge-err','Parse error') : el('span','badge-ok','OK'));
+    head.append(item.error ? el('span','badge-err','Parse error') : el('span','badge-ok','OK'));
     head.append(toolbar);
 
     const headerWrap = el('header'); headerWrap.append(head);
     card.append(headerWrap, body);
+
+    // Track active card on click for keyboard shortcuts
+    card.addEventListener('mousedown', () => setActive(item.origIdx, false));
+
+    syncExcluded(card, item, excludeBtn);
     return card;
   }
 
-  function clearView(){
-    $list.innerHTML = '';
-    $filterInfo.textContent = '';
-    state.linesTotal = state.parsedCount = state.errorCount = 0;
-    state.totalChars = 0;
-    state.mode = 'unknown';
-    updateStats();
+  function syncExcluded(card, item, btn){
+    card.classList.toggle('excluded', item.excluded);
+    btn.textContent = item.excluded ? 'Include' : 'Exclude';
+    btn.classList.toggle('active', item.excluded);
   }
 
-  function filterView(query){
-    const q = (query||'').toLowerCase();
-    let visible = 0;
-    $list.querySelectorAll('.card').forEach(card => {
-      const txt = card.textContent.toLowerCase();
-      const show = !q || txt.includes(q);
-      card.classList.toggle('hidden', !show);
-      if (show) visible++;
-    });
-    if (!q){
-      $filterInfo.textContent = '';
-    } else {
-      const word = visible === 1 ? 'item' : 'items';
-      $filterInfo.textContent = `${visible} matching ${word}`;
+  function getCardEl(item){
+    if (!item._cardEl) item._cardEl = buildCard(item);
+    return item._cardEl;
+  }
+
+  /* ---------- Schema sidebar ---------- */
+  function analyzeSchema(){
+    const m = new Map();
+    for (const it of state.items){
+      for (const k of it.topKeys){
+        m.set(k, (m.get(k) || 0) + 1);
+      }
     }
+    state.schema = m;
   }
 
-  // Try full-JSON first (for .json files and also as a fallback for others)
-  function tryParseFullJSON(text){
-    try{
-      const parsed = JSON.parse(text);
-      return { ok:true, value: parsed };
-    }catch(e){
-      return { ok:false, error: e };
+  function renderSidebar(){
+    const m = state.schema;
+    if (!m.size){
+      $schemaKeys.replaceChildren(el('div','side-empty', state.items.length
+        ? 'No top-level object keys (items are arrays/primitives).'
+        : 'Load a file to see keys.'));
+      $sideActions.style.display = 'none';
+      return;
     }
-  }
-
-  function renderAsJSON(value, originalText){
+    const keys = [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     const frag = document.createDocumentFragment();
+    for (const [name, count] of keys){
+      const chip = el('span','key-chip');
+      chip.textContent = name;
+      chip.append(el('span','count', String(count)));
+      if (state.selectedKeys.has(name)) chip.classList.add('selected');
+      chip.addEventListener('click', () => {
+        if (state.selectedKeys.has(name)) state.selectedKeys.delete(name);
+        else state.selectedKeys.add(name);
+        renderSidebar();
+        renderView();
+      });
+      frag.append(chip);
+    }
+    $schemaKeys.replaceChildren(frag);
+    $sideActions.style.display = state.selectedKeys.size ? '' : 'none';
+  }
+
+  /* ---------- Filter / sort / paginate ---------- */
+  function applyFilters(items){
+    const q = state.searchQuery.toLowerCase();
+    const minT = (state.minTokens != null && Number.isFinite(state.minTokens)) ? state.minTokens : -Infinity;
+    const maxT = (state.maxTokens != null && Number.isFinite(state.maxTokens)) ? state.maxTokens : Infinity;
+    const reqKeys = state.selectedKeys;
+    return items.filter(it => {
+      if (q && !it.searchText.includes(q)) return false;
+      if (it.tokens < minT || it.tokens > maxT) return false;
+      if (reqKeys.size){
+        for (const k of reqKeys) if (!it.topKeys.includes(k)) return false;
+      }
+      return true;
+    });
+  }
+
+  function applySort(items){
+    if (state.sortMode === 'default') return items;
+    const arr = items.slice();
+    const dir = state.sortMode.endsWith('-asc') ? 1 : -1;
+    const field = state.sortMode.startsWith('tokens') ? 'tokens' : 'charCount';
+    arr.sort((a, b) => (a[field] - b[field]) * dir);
+    return arr;
+  }
+
+  function renderView(){
+    state.viewItems = applySort(applyFilters(state.items));
+    const limit = state.pageSize * state.pagesShown;
+    const slice = state.viewItems.slice(0, limit);
+    const frag = document.createDocumentFragment();
+    for (const it of slice) frag.append(getCardEl(it));
+    $list.replaceChildren(frag);
+    renderLoadMore();
+    updateFilterInfo();
+    updateStats();
+    // Re-mark active if still rendered
+    markActive();
+    // Newly-rendered cards may include freshly built keys; colorize if needed.
+    if (state.colorize) applyColorize();
+  }
+
+  function renderLoadMore(){
+    $loadMore.replaceChildren();
+    const total = state.viewItems.length;
+    const shown = Math.min(state.pageSize * state.pagesShown, total);
+    if (!state.items.length) return;
+    const status = el('span',null, `Showing ${fmtNum(shown)} of ${fmtNum(total)}`);
+    $loadMore.append(status);
+    if (shown < total){
+      const btn = el('button','btn',`Load next ${Math.min(state.pageSize, total - shown)}`);
+      btn.addEventListener('click', () => {
+        state.pagesShown++;
+        renderView();
+      });
+      const all = el('button','btn','Load all');
+      all.addEventListener('click', () => {
+        state.pagesShown = Math.ceil(total / state.pageSize);
+        renderView();
+      });
+      $loadMore.append(btn, all);
+    }
+  }
+
+  function updateFilterInfo(){
+    if (!state.items.length){ $filterInfo.textContent = ''; return; }
+    const total = state.items.length;
+    const match = state.viewItems.length;
+    const excluded = state.viewItems.filter(it => it.excluded).length;
+    const hidden = total - match;
+    const parts = [];
+    if (hidden > 0) parts.push(`${fmtNum(hidden)} hidden by filter`);
+    if (excluded > 0) parts.push(`${fmtNum(excluded)} excluded`);
+    parts.push(`${fmtNum(match - excluded)} will export`);
+    $filterInfo.textContent = parts.join(' · ');
+  }
+
+  function updateStats(){
+    if (!state.fileName){ $stats.textContent = 'No file loaded'; return; }
+    const modeTxt = state.mode === 'json' ? 'JSON' : state.mode === 'jsonl' ? 'JSONL' : 'Auto';
+    const total = state.items.length;
+    const ok = state.items.filter(i => !i.error).length;
+    const err = state.items.filter(i => i.error).length;
+    const totalChars = state.items.reduce((s, i) => s + i.charCount, 0);
+    const totalTokens = estimateTokens(totalChars);
+    const itemWord = total === 1 ? 'item' : 'items';
+    const errWord = err === 1 ? 'error' : 'errors';
+    $stats.textContent =
+      `${state.fileName} • ${modeTxt} • ${fmtNum(total)} ${itemWord} • ` +
+      `${fmtNum(ok)} ok • ${fmtNum(err)} ${errWord} • ` +
+      `${fmtNum(totalChars)} chars • ~${fmtNum(totalTokens)} tok`;
+  }
+
+  /* ---------- Active card / keyboard nav ---------- */
+  function setActive(origIdx, scroll=true){
+    state.activeOrigIdx = origIdx;
+    markActive();
+    if (scroll){
+      const card = getActiveCard();
+      if (card) card.scrollIntoView({ block:'nearest', behavior:'smooth' });
+    }
+  }
+  function markActive(){
+    $list.querySelectorAll('.card.active').forEach(c => c.classList.remove('active'));
+    const card = getActiveCard();
+    if (card) card.classList.add('active');
+  }
+  function getActiveCard(){
+    if (state.activeOrigIdx < 0) return null;
+    const it = state.items[state.activeOrigIdx];
+    if (!it || !it._cardEl) return null;
+    return it._cardEl.isConnected ? it._cardEl : null;
+  }
+  function jumpRelative(delta){
+    const view = state.viewItems;
+    if (!view.length) return;
+    let idx = view.findIndex(it => it.origIdx === state.activeOrigIdx);
+    if (idx < 0) idx = (delta > 0) ? -1 : view.length;
+    let target = idx + delta;
+    target = Math.max(0, Math.min(view.length - 1, target));
+    // If the target is beyond the rendered page, load more pages and re-render.
+    const prevPages = state.pagesShown;
+    while (target >= state.pageSize * state.pagesShown){
+      state.pagesShown++;
+    }
+    if (state.pagesShown !== prevPages) renderView();
+    setActive(view[target].origIdx, true);
+  }
+
+  /* ---------- Parsing ---------- */
+  function tryParseFullJSON(text){
+    try { return { ok:true, value: JSON.parse(text) }; }
+    catch (e){ return { ok:false, error: e }; }
+  }
+
+  function parseAsJSON(value, originalText){
+    state.mode = 'json';
+    const items = [];
     if (Array.isArray(value)){
-      state.mode = 'json';
-      state.linesTotal = value.length;
-      value.forEach((item, idx) => {
-        const itemRaw = (() => {
-          try { return JSON.stringify(item); } catch { return ''; }
-        })();
-        state.parsedCount++;
-        state.totalChars += itemRaw.length;
-        frag.append(cardForItem(idx, itemRaw, item, false, 'Item'));
+      value.forEach((item, i) => {
+        let raw;
+        try { raw = JSON.stringify(item); } catch { raw = ''; }
+        items.push(makeItem(i, 'Item', raw, item, false));
       });
     } else {
-      state.mode = 'json';
-      state.linesTotal = 1;
-      state.parsedCount++;
-      const itemRaw = (() => {
-        try { return JSON.stringify(value); } catch { return originalText; }
-      })();
-      state.totalChars += itemRaw.length;
-      frag.append(cardForItem(0, originalText, value, false, 'Item'));
+      let raw;
+      try { raw = JSON.stringify(value); } catch { raw = originalText; }
+      items.push(makeItem(0, 'Item', raw, value, false));
     }
-    $list.replaceChildren(frag);
-    updateStats();
+    return items;
   }
 
-  function renderAsJSONL(text){
-    const lines = text.split(/\r?\n/);
+  function parseAsJSONL(text){
     state.mode = 'jsonl';
-
-    const frag = document.createDocumentFragment();
-    // Use the actual file line number for the label (so error reports point to
-    // the right line even when blanks are skipped).
-    lines.forEach((line, lineIdx) => {
-      // Silently skip blank lines (very common: trailing newline at EOF).
-      if (line.trim() === '') return;
-      state.linesTotal++;
-      try{
+    const items = [];
+    const lines = text.split(/\r?\n/);
+    lines.forEach((line, i) => {
+      if (line.trim() === '') return; // silently skip blanks
+      try {
         const parsed = JSON.parse(line);
-        state.parsedCount++;
-        state.totalChars += line.length;
-        frag.append(cardForItem(lineIdx, line, parsed, false, 'Line'));
-      }catch(_){
-        state.errorCount++;
-        state.totalChars += line.length;
-        frag.append(cardForItem(lineIdx, line, null, true, 'Line'));
+        items.push(makeItem(i, 'Line', line, parsed, false));
+      } catch {
+        items.push(makeItem(i, 'Line', line, null, true));
       }
     });
-    $list.replaceChildren(frag);
-    updateStats();
+    return items;
+  }
+
+  /* ---------- Load file ---------- */
+  function resetView(){
+    state.items = [];
+    state.schema = new Map();
+    state.selectedKeys = new Set();
+    state.viewItems = [];
+    state.pagesShown = 1;
+    state.activeOrigIdx = -1;
+    state.searchQuery = '';
+    state.minTokens = null;
+    state.maxTokens = null;
+    state.sortMode = 'default';
+    $search.value = '';
+    $minTokens.value = '';
+    $maxTokens.value = '';
+    $sortSel.value = 'default';
+    $list.replaceChildren();
+    $loadMore.replaceChildren();
   }
 
   async function loadFile(file){
-    clearView();
+    resetView();
     state.fileName = file.name;
     updateStats();
 
     const text = await file.text();
     const lower = (file.name || '').toLowerCase();
 
+    let items;
     if (lower.endsWith('.json')) {
       const full = tryParseFullJSON(text);
-      if (full.ok) renderAsJSON(full.value, text);
-      else renderAsJSONL(text);
-      return;
-    }
-
-    const full = tryParseFullJSON(text);
-    if (full.ok && (typeof full.value !== 'string')) {
-      renderAsJSON(full.value, text);
+      items = full.ok ? parseAsJSON(full.value, text) : parseAsJSONL(text);
     } else {
-      renderAsJSONL(text);
+      const full = tryParseFullJSON(text);
+      if (full.ok && (typeof full.value !== 'string')) items = parseAsJSON(full.value, text);
+      else items = parseAsJSONL(text);
     }
+    items.forEach((it, i) => { it.origIdx = i; });
+    state.items = items;
+
+    analyzeSchema();
+    renderSidebar();
+    renderView();
+
+    // Compact the drop zone so the first card is above the fold.
+    $drop.classList.add('compact');
+    $drop.firstElementChild.innerHTML =
+      '<strong>' + escapeHTML(file.name) + '</strong> loaded — drop or click to load another file.';
+  }
+
+  function escapeHTML(s){
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
   }
 
   /* ---------- Global expand/collapse ---------- */
   $expandAll.addEventListener('click', () => {
-    document.querySelectorAll('details.tree-node').forEach(d => d.open = true);
+    $list.querySelectorAll('details.tree-node').forEach(d => d.open = true);
   });
   $collapseAll.addEventListener('click', () => {
-    document.querySelectorAll('details.tree-node').forEach(d => d.open = false);
+    $list.querySelectorAll('details.tree-node').forEach(d => d.open = false);
   });
 
-  /* ---------- Export visible (filtered) items as JSONL ---------- */
-  const $exportBtn = document.getElementById('exportBtn');
+  /* ---------- Export visible+included items as JSONL ---------- */
   $exportBtn.addEventListener('click', () => {
-    const lines = [];
-    $list.querySelectorAll('.card:not(.hidden)').forEach(c => {
-      const r = c.dataset.exportRaw;
-      if (r != null && r !== '') lines.push(r);
-    });
-    if (!lines.length){
-      showToast('Nothing to export');
-      return;
-    }
+    const lines = state.viewItems
+      .filter(it => !it.excluded && it.exportRaw != null && it.exportRaw !== '')
+      .map(it => it.exportRaw);
+    if (!lines.length){ showToast('Nothing to export'); return; }
     const blob = new Blob([lines.join('\n') + '\n'], { type: 'application/jsonl' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -633,17 +977,50 @@
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showToast(`Exported ${lines.length} item${lines.length===1?'':'s'}`);
+    showToast(`Exported ${fmtNum(lines.length)} item${lines.length===1?'':'s'}`);
+  });
+
+  /* ---------- Sort / length filter ---------- */
+  $sortSel.addEventListener('change', () => {
+    state.sortMode = $sortSel.value;
+    state.pagesShown = 1;
+    renderView();
+  });
+  function readNumOrNull(v){
+    if (v === '' || v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  function onLengthChange(){
+    state.minTokens = readNumOrNull($minTokens.value);
+    state.maxTokens = readNumOrNull($maxTokens.value);
+    state.pagesShown = 1;
+    renderView();
+  }
+  let lenTimer;
+  [$minTokens, $maxTokens].forEach(inp => {
+    inp.addEventListener('input', () => {
+      clearTimeout(lenTimer);
+      lenTimer = setTimeout(onLengthChange, 150);
+    });
+  });
+
+  /* ---------- Sidebar clear ---------- */
+  $clearKeys.addEventListener('click', () => {
+    state.selectedKeys.clear();
+    state.pagesShown = 1;
+    renderSidebar();
+    renderView();
   });
 
   /* ---------- Drag & drop ---------- */
-  ;['dragenter','dragover'].forEach(ev=>{
+  ;['dragenter','dragover'].forEach(ev => {
     document.addEventListener(ev, e => {
       e.preventDefault(); e.stopPropagation();
       $drop.classList.add('active');
     });
   });
-  ;['dragleave','drop'].forEach(ev=>{
+  ;['dragleave','drop'].forEach(ev => {
     document.addEventListener(ev, e => {
       e.preventDefault(); e.stopPropagation();
       if (ev === 'drop'){
@@ -660,73 +1037,148 @@
     if (f) loadFile(f);
     $file.value = '';
   });
+  $drop.addEventListener('click', () => $file.click());
 
   /* ---------- Toggles ---------- */
-  $toggle.addEventListener('change', () => {
-    state.modeNewlines = $toggle.checked;
+  $nl.addEventListener('change', () => {
+    state.modeNewlines = $nl.checked;
     applyNewlineMode();
   });
   $quickCopy.addEventListener('change', () => {
     state.quickCopy = $quickCopy.checked;
     showToast(state.quickCopy ? 'Quick Copy: ON' : 'Quick Copy: OFF');
   });
-
-  /* ---------- Search ---------- */
-  let filterTimer;
-  $search.addEventListener('input', () => {
-    clearTimeout(filterTimer);
-    filterTimer = setTimeout(()=>filterView($search.value), 120);
+  $colorize.addEventListener('change', () => {
+    state.colorize = $colorize.checked;
+    applyColorize();
   });
 
-  /* ---------- Click-to-copy (Quick Copy) ---------- */
+  /* ---------- Search ---------- */
+  let searchTimer;
+  $search.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      state.searchQuery = $search.value;
+      state.pagesShown = 1;
+      renderView();
+    }, 120);
+  });
+
+  /* ---------- Quick Copy ---------- */
   document.addEventListener('click', async (e) => {
     if (!state.quickCopy) return;
-
     const t = e.target;
     if (!(t instanceof HTMLElement)) return;
-
-    // value spans (note: '.idx' is array-index key — handled as a key, not a value)
     const valueEl = t.closest('.str,.num,.bool,.nil,.pun');
     const keyEl = t.closest('.key,.idx');
     const summaryEl = t.closest('summary');
-
     try {
-      if (e.altKey && (valueEl || keyEl || summaryEl)) {
-        const path = (valueEl?.dataset.path) || (keyEl?.dataset.path) || (summaryEl?.dataset.path);
-        if (path) {
+      if (e.altKey && (valueEl || keyEl || summaryEl)){
+        const path = valueEl?.dataset.path || keyEl?.dataset.path || summaryEl?.dataset.path;
+        if (path){
           await navigator.clipboard.writeText(path);
           showToast('Copied path: ' + path);
           e.preventDefault();
         }
         return;
       }
-
-      if (keyEl) {
+      if (keyEl){
         const k = keyEl.dataset.key || '';
         await navigator.clipboard.writeText(k);
         showToast('Copied key: ' + k);
         e.preventDefault();
         return;
       }
-
-      if ((e.ctrlKey || e.metaKey) && summaryEl && summaryEl.dataset.json) {
+      if ((e.ctrlKey || e.metaKey) && summaryEl && summaryEl.dataset.json){
         await navigator.clipboard.writeText(summaryEl.dataset.json);
         showToast('Copied node JSON');
         e.preventDefault();
         return;
       }
-
-      if (valueEl && valueEl.dataset.json) {
+      if (valueEl && valueEl.dataset.json){
         await navigator.clipboard.writeText(valueEl.dataset.json);
         showToast('Copied value');
         e.preventDefault();
         return;
       }
-    } catch { /* ignore */ }
+    } catch {}
   });
 
-  /* ---------- Click drop-zone to open dialog ---------- */
-  $drop.addEventListener('click', () => $file.click());
+  /* ---------- Keyboard shortcuts ---------- */
+  function isTypingInField(t){
+    if (!t) return false;
+    const tag = (t.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+    if (t.isContentEditable) return true;
+    return false;
+  }
+  document.addEventListener('keydown', (e) => {
+    // Esc clears search even when focused
+    if (e.key === 'Escape'){
+      if (document.activeElement === $search){
+        if ($search.value){
+          $search.value = '';
+          state.searchQuery = '';
+          state.pagesShown = 1;
+          renderView();
+        } else {
+          $search.blur();
+        }
+      }
+      return;
+    }
+    if (isTypingInField(e.target)) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    switch (e.key){
+      case '/':
+        e.preventDefault();
+        $search.focus();
+        $search.select();
+        break;
+      case 'n':
+      case 'j':
+        e.preventDefault();
+        jumpRelative(1);
+        break;
+      case 'p':
+      case 'k':
+        e.preventDefault();
+        jumpRelative(-1);
+        break;
+      case 'e':
+        e.preventDefault();
+        toggleActiveTree(true);
+        break;
+      case 'c':
+        e.preventDefault();
+        toggleActiveTree(false);
+        break;
+      case 'x': {
+        e.preventDefault();
+        const it = state.items[state.activeOrigIdx];
+        if (it){
+          it.excluded = !it.excluded;
+          // Re-build is unnecessary; just sync the cached card
+          if (it._cardEl){
+            const btn = it._cardEl.querySelector('.mini-btn.danger');
+            syncExcluded(it._cardEl, it, btn);
+          }
+          updateFilterInfo();
+        }
+        break;
+      }
+    }
+  });
+  function toggleActiveTree(open){
+    const card = getActiveCard();
+    const target = card || $list;
+    target.querySelectorAll('details.tree-node').forEach(d => d.open = open);
+  }
+
+  /* ---------- Init ---------- */
+  updateStats();
+  renderSidebar();
 })();
 </script>
 </body>
