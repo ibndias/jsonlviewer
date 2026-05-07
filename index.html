@@ -209,6 +209,11 @@
           <input id="themeToggle" type="checkbox" />
         </label>
 
+        <label class="switch" title="Colorize each key name with its own color so repeated fields are easy to scan">
+          <span>Colorize keys</span>
+          <input id="colorizeToggle" type="checkbox" />
+        </label>
+
         <label class="switch" title="Quick Copy: click value=copy JSON value; click key=copy key; Alt-click=copy JSON path; Ctrl/Cmd+click summary=copy node JSON">
           <span>Quick Copy</span>
           <input id="quickCopyToggle" type="checkbox" />
@@ -302,6 +307,7 @@
   const $file        = $('fileInput');
   const $nl          = $('nlToggle');
   const $themeToggle = $('themeToggle');
+  const $colorize    = $('colorizeToggle');
   const $quickCopy   = $('quickCopyToggle');
   const $search      = $('search');
   const $expandAll   = $('expandAll');
@@ -323,6 +329,7 @@
     fileName: '',
     mode: 'unknown',          // 'json' | 'jsonl' | 'unknown'
     modeNewlines: true,
+    colorize: false,
     quickCopy: false,
     items: [],                // canonical data (file order)
     schema: new Map(),        // top-level key -> count
@@ -359,6 +366,8 @@
     const theme = $themeToggle.checked ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('jsonl_viewer_theme', theme);
+    // Re-derive key colors against the new background.
+    if (state.colorize) applyColorize();
   });
 
   /* ---------- Path helpers ---------- */
@@ -506,6 +515,36 @@
   function applyNewlineMode(){
     document.querySelectorAll('.str').forEach(s => {
       s.textContent = state.modeNewlines ? (s.dataset.raw ?? '') : (s.dataset.escaped ?? '');
+    });
+  }
+
+  /* ---------- Colorize keys ---------- */
+  // Stable hue per key name (djb2 hash → hue).
+  function keyHue(name){
+    let h = 5381;
+    for (let i = 0; i < name.length; i++) h = ((h << 5) + h + name.charCodeAt(i)) | 0;
+    return Math.abs(h) % 360;
+  }
+  function isDarkTheme(){
+    const t = document.documentElement.getAttribute('data-theme');
+    if (t === 'dark') return true;
+    if (t === 'light') return false;
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function keyColor(name){
+    const hue = keyHue(name);
+    const lightness = isDarkTheme() ? 72 : 38;
+    return `hsl(${hue}, 70%, ${lightness}%)`;
+  }
+  function applyColorize(){
+    // Only color object keys; array indexes keep their dedicated color.
+    document.querySelectorAll('.key').forEach(el => {
+      if (state.colorize){
+        const k = el.dataset.key || '';
+        el.style.color = keyColor(k);
+      } else {
+        el.style.color = '';
+      }
     });
   }
 
@@ -728,6 +767,8 @@
     updateStats();
     // Re-mark active if still rendered
     markActive();
+    // Newly-rendered cards may include freshly built keys; colorize if needed.
+    if (state.colorize) applyColorize();
   }
 
   function renderLoadMore(){
@@ -1006,6 +1047,10 @@
   $quickCopy.addEventListener('change', () => {
     state.quickCopy = $quickCopy.checked;
     showToast(state.quickCopy ? 'Quick Copy: ON' : 'Quick Copy: OFF');
+  });
+  $colorize.addEventListener('change', () => {
+    state.colorize = $colorize.checked;
+    applyColorize();
   });
 
   /* ---------- Search ---------- */
