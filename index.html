@@ -1848,7 +1848,9 @@
     if (isTypingInField(e.target)) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-    switch (e.key){
+    // Normalize so caps-lock / shift don't break shortcuts.
+    const k = (e.key || '').length === 1 ? e.key.toLowerCase() : e.key;
+    switch (k){
       case '/':
         e.preventDefault();
         $search.focus();
