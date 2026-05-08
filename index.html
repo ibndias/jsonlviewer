@@ -251,7 +251,10 @@
   .edit-input{font:13px/1.4 var(--mono); padding:2px 6px; border-radius:5px;
               border:1px solid var(--accent); background:var(--panel); color:var(--fg);
               outline:none; min-width:60px; box-shadow:0 0 0 3px var(--accent-soft)}
-  textarea.edit-input{resize:vertical; min-height:1.4em; min-width:240px; max-width:100%; white-space:pre}
+  textarea.edit-input{display:block; flex:1 1 0; min-width:0; width:100%; box-sizing:border-box;
+                      resize:vertical; min-height:2.2em; padding:8px 10px;
+                      font:13px/1.55 var(--mono); white-space:pre-wrap; word-break:break-word;
+                      background:var(--panel)}
   select.edit-input{padding:2px 6px}
 
   .raw-editor{display:flex; flex-direction:column; gap:10px}
@@ -1491,10 +1494,15 @@
     else { const w = walkPath(item.parsed, tokens); oldVal = w.parent[w.lastKey]; }
 
     let inp;
+    let autosize = null;
     if (vtype === 'string'){
       inp = el('textarea','edit-input');
       inp.value = String(oldVal);
-      inp.rows = Math.min(8, Math.max(1, String(oldVal).split('\n').length));
+      inp.rows = 1;
+      autosize = () => {
+        inp.style.height = 'auto';
+        inp.style.height = Math.max(inp.scrollHeight + 2, 36) + 'px';
+      };
     } else if (vtype === 'number'){
       inp = el('input','edit-input');
       inp.type = 'text'; inp.value = String(oldVal);
@@ -1514,6 +1522,12 @@
     spanEl.replaceWith(inp);
     inp.focus();
     if (typeof inp.select === 'function') try{inp.select();}catch{}
+    if (autosize){
+      autosize();
+      inp.addEventListener('input', autosize);
+      // Re-measure once layout settles (font load / wrapping).
+      requestAnimationFrame(autosize);
+    }
 
     let done = false;
     const finish = (commit) => {
