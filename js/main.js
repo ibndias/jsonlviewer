@@ -11,6 +11,7 @@ import {
 import { confirmModal, promptKey } from './modal.js';
 import { pathKey, pathIdx, parsePath, walkPath, estimateTokens, fmtNum } from './path.js';
 import { state, newFileId, liveItems } from './state.js';
+import { applyColorize, keyColor } from './view-colorize.js';
 
   /* ---- Per-file snapshot helpers ---- */
   // Save current per-file state into the active file's snapshot.
@@ -498,34 +499,6 @@ import { state, newFileId, liveItems } from './state.js';
       root.append(p);
     }
     return root;
-  }
-
-  /* Colorize keys */
-  function keyHue(name){
-    let h = 5381;
-    for (let i = 0; i < name.length; i++) h = ((h << 5) + h + name.charCodeAt(i)) | 0;
-    return Math.abs(h) % 360;
-  }
-  function isDarkTheme(){
-    const t = document.documentElement.getAttribute('data-theme');
-    if (t === 'dark') return true;
-    if (t === 'light') return false;
-    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  }
-  function keyColor(name){
-    const hue = keyHue(name);
-    const lightness = isDarkTheme() ? 72 : 38;
-    return `hsl(${hue}, 70%, ${lightness}%)`;
-  }
-  function applyColorize(){
-    document.querySelectorAll('.key').forEach(elx => {
-      if (state.colorize){
-        const k = elx.dataset.key || '';
-        elx.style.color = keyColor(k);
-      } else {
-        elx.style.color = '';
-      }
-    });
   }
 
   /* Item construction */
