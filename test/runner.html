@@ -1,0 +1,467 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>JSONL Viewer — Test Runner</title>
+<style>
+  body{font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:0; background:#0b0d10; color:#e7ecf3}
+  header{padding:12px 16px; border-bottom:1px solid #1e2630; display:flex; gap:12px; align-items:center}
+  h1{font-size:15px; margin:0}
+  .summary{font:600 13px/1 ui-monospace,Menlo,monospace}
+  .summary .ok{color:#3ecf8e}
+  .summary .fail{color:#ff6b6b}
+  button{background:#11151a; color:#e7ecf3; border:1px solid #1e2630; border-radius:8px; padding:7px 12px; cursor:pointer; font-weight:600}
+  button:hover{border-color:#4da3ff}
+  main{display:grid; grid-template-columns:380px 1fr; gap:12px; padding:12px 16px; height:calc(100vh - 60px); box-sizing:border-box}
+  #log{overflow:auto; background:#11151a; border:1px solid #1e2630; border-radius:10px; padding:10px; font:12.5px/1.45 ui-monospace,Menlo,monospace}
+  #log .row{padding:4px 6px; border-radius:6px; display:flex; gap:8px; align-items:flex-start}
+  #log .row.ok{color:#3ecf8e}
+  #log .row.fail{color:#ff6b6b; background:rgba(255,107,107,0.06)}
+  #log .row .name{flex:1}
+  #log .row .ms{color:#8796a8; font-size:11px}
+  #log details{margin-left:18px; color:#ffb454; white-space:pre-wrap}
+  iframe{width:100%; height:100%; border:1px solid #1e2630; border-radius:10px; background:#fff}
+</style>
+</head>
+<body>
+  <header>
+    <h1>JSONL Viewer — Test Runner</h1>
+    <button id="run">Run all</button>
+    <span class="summary" id="summary">idle</span>
+  </header>
+  <main>
+    <div id="log"></div>
+    <iframe id="frame" src="../index.html"></iframe>
+  </main>
+
+<script>
+(() => {
+  const $log = document.getElementById('log');
+  const $sum = document.getElementById('summary');
+  const $frame = document.getElementById('frame');
+  const $run = document.getElementById('run');
+
+  function logRow(name, ok, err, ms){
+    const row = document.createElement('div');
+    row.className = 'row ' + (ok ? 'ok' : 'fail');
+    const icon = document.createElement('span');
+    icon.textContent = ok ? '✓' : '✗';
+    const nm = document.createElement('span');
+    nm.className = 'name';
+    nm.textContent = name;
+    const t = document.createElement('span');
+    t.className = 'ms';
+    t.textContent = ms + 'ms';
+    row.append(icon, nm, t);
+    $log.append(row);
+    if (!ok && err){
+      const det = document.createElement('details');
+      det.open = true;
+      const sm = document.createElement('summary');
+      sm.textContent = 'error';
+      det.append(sm);
+      const pre = document.createElement('pre');
+      pre.textContent = String(err.stack || err.message || err);
+      det.append(pre);
+      $log.append(det);
+    }
+    $log.scrollTop = $log.scrollHeight;
+  }
+
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  function assert(cond, msg){
+    if (!cond) throw new Error(msg || 'assertion failed');
+  }
+  function assertEq(a, b, msg){
+    if (a !== b) throw new Error((msg || 'expected') + ': ' + JSON.stringify(a) + ' !== ' + JSON.stringify(b));
+  }
+
+  // Reload iframe and wait for app ready (file input present + script run).
+  function reloadFrame(){
+    return new Promise(resolve => {
+      $frame.onload = () => setTimeout(resolve, 80);
+      $frame.src = '../index.html?test=1&t=' + Date.now();
+    });
+  }
+  function fdoc(){ return $frame.contentDocument; }
+  function fwin(){ return $frame.contentWindow; }
+
+  async function loadSampleFile(path){
+    const resp = await fetch(path);
+    const text = await resp.text();
+    const name = path.split('/').pop();
+    const file = new File([text], name, {type: name.endsWith('.json') ? 'application/json' : 'application/jsonl'});
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    const input = fdoc().getElementById('fileInput');
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change', {bubbles:true}));
+    await sleep(120);
+  }
+
+  // Confirm/cancel any open modal via Enter / Escape on the iframe document.
+  async function confirmModal(){
+    await sleep(60);
+    const m = fdoc().getElementById('modal');
+    if (!m || m.style.display !== 'flex') return;
+    fdoc().dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+    await sleep(60);
+  }
+
+  // Capture next anchor.click to read blob payload.
+  function captureNextDownload(){
+    const win = fwin();
+    return new Promise(resolve => {
+      const orig = win.HTMLAnchorElement.prototype.click;
+      win.HTMLAnchorElement.prototype.click = async function(){
+        if (this.download){
+          const r = await fetch(this.href);
+          const text = await r.text();
+          win.HTMLAnchorElement.prototype.click = orig;
+          resolve({name: this.download, text});
+        }
+      };
+    });
+  }
+
+  /* ---------- Tests ---------- */
+  const tests = [];
+  const test = (name, fn) => tests.push({name, fn});
+
+  test('initial state shows "No file loaded"', async () => {
+    await reloadFrame();
+    const stats = fdoc().getElementById('stats').textContent;
+    assertEq(stats, 'No file loaded');
+    assertEq(fdoc().querySelectorAll('.card').length, 0);
+  });
+
+  test('load JSON array → 3 cards', async () => {
+    await reloadFrame();
+    await loadSampleFile('../sample/sample-data.json');
+    assertEq(fdoc().querySelectorAll('.card').length, 3);
+    assert(fdoc().getElementById('stats').textContent.includes('3 items'));
+  });
+
+  test('schema sidebar shows top-level keys', async () => {
+    const chips = [...fdoc().querySelectorAll('.key-chip')].map(c => c.textContent);
+    assert(chips.length >= 5, 'expected >=5 chips, got ' + chips.length);
+    assert(chips.some(c => c.startsWith('name')), 'expected "name" chip');
+  });
+
+  test('search filter narrows cards', async () => {
+    const s = fdoc().getElementById('search');
+    s.value = 'Bob';
+    s.dispatchEvent(new Event('input', {bubbles:true}));
+    await sleep(180);
+    assertEq(fdoc().querySelectorAll('.card').length, 1);
+    s.value = '';
+    s.dispatchEvent(new Event('input', {bubbles:true}));
+    await sleep(180);
+    assertEq(fdoc().querySelectorAll('.card').length, 3);
+  });
+
+  test('schema chip click filters', async () => {
+    const chips = [...fdoc().querySelectorAll('.key-chip')];
+    chips[0].click();
+    await sleep(60);
+    assert(fdoc().getElementById('sideActions').style.display !== 'none');
+    fdoc().getElementById('clearKeysBtn').click();
+    await sleep(60);
+    assertEq(fdoc().getElementById('sideActions').style.display, 'none');
+  });
+
+  test('sort by tokens-desc reorders cards', async () => {
+    const sel = fdoc().getElementById('sortSel');
+    sel.value = 'tokens-desc';
+    sel.dispatchEvent(new Event('change', {bubbles:true}));
+    await sleep(60);
+    const first = fdoc().querySelector('.card .ln').textContent;
+    sel.value = 'default';
+    sel.dispatchEvent(new Event('change', {bubbles:true}));
+    await sleep(60);
+    assert(/Item \d+/.test(first));
+  });
+
+  test('inline edit string value via dblclick + Enter', async () => {
+    const card = fdoc().querySelectorAll('.card')[0];
+    const target = [...card.querySelectorAll('.str.editable')].find(s => s.dataset.raw === 'Alice Johnson');
+    assert(target, 'name value not found');
+    target.dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}));
+    const inp = fdoc().querySelectorAll('.card')[0].querySelector('.edit-input');
+    assert(inp, 'edit input did not appear');
+    inp.value = 'Alice Edited';
+    inp.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+    await sleep(40);
+    const refreshed = fdoc().querySelectorAll('.card')[0];
+    const renamed = [...refreshed.querySelectorAll('.str.editable')].find(s => s.dataset.raw === 'Alice Edited');
+    assert(renamed, 'edit not reflected');
+    assert(refreshed.classList.contains('dirty'), 'card not marked dirty');
+    assert(fdoc().getElementById('dirtyBadge').classList.contains('show'), 'dirty badge hidden');
+  });
+
+  test('inline edit number value', async () => {
+    const card = fdoc().querySelectorAll('.card')[0];
+    const num = [...card.querySelectorAll('.num.editable')].find(n => n.textContent === '1');
+    num.dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}));
+    const inp = fdoc().querySelectorAll('.card')[0].querySelector('.edit-input');
+    inp.value = '99';
+    inp.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+    await sleep(40);
+    const c2 = fdoc().querySelectorAll('.card')[0];
+    assert([...c2.querySelectorAll('.num.editable')].some(n => n.textContent === '99'));
+  });
+
+  test('inline edit boolean → select widget', async () => {
+    const card = fdoc().querySelectorAll('.card')[0];
+    const b = [...card.querySelectorAll('.bool.editable')].find(b => b.textContent === 'true');
+    b.dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}));
+    const sel = fdoc().querySelectorAll('.card')[0].querySelector('select.edit-input');
+    assert(sel && sel.tagName === 'SELECT');
+    sel.value = 'false';
+    sel.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+    await sleep(40);
+    const c2 = fdoc().querySelectorAll('.card')[0];
+    assert([...c2.querySelectorAll('.bool.editable')].some(b => b.textContent === 'false'));
+  });
+
+  test('rename key inline', async () => {
+    const card = fdoc().querySelectorAll('.card')[0];
+    const k = [...card.querySelectorAll('.key.editable')].find(k => k.dataset.key === 'role');
+    k.dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}));
+    const inp = fdoc().querySelectorAll('.card')[0].querySelector('.edit-input');
+    inp.value = 'job_title';
+    inp.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+    await sleep(40);
+    const c2 = fdoc().querySelectorAll('.card')[0];
+    assert([...c2.querySelectorAll('.key.editable')].some(k => k.dataset.key === 'job_title'));
+  });
+
+  test('row × deletes a key', async () => {
+    const card = fdoc().querySelectorAll('.card')[0];
+    const emailRow = [...card.querySelectorAll('.kv')].find(kv => kv.querySelector('.key')?.dataset.key === 'email');
+    assert(emailRow, 'email row not found');
+    emailRow.querySelector('.row-btn.del').click();
+    await sleep(40);
+    const c2 = fdoc().querySelectorAll('.card')[0];
+    assert(![...c2.querySelectorAll('.key')].some(k => k.dataset.key === 'email'), 'email still present');
+  });
+
+  test('append array item via + button', async () => {
+    const card = fdoc().querySelectorAll('.card')[0];
+    const skillsSum = [...card.querySelectorAll('summary')].find(s => s.querySelector('.key')?.dataset.key === 'skills');
+    const before = JSON.parse(skillsSum.dataset.json).length;
+    skillsSum.querySelector('.row-btn.add').click();
+    await sleep(40);
+    const c2 = fdoc().querySelectorAll('.card')[0];
+    const after = JSON.parse([...c2.querySelectorAll('summary')].find(s => s.querySelector('.key')?.dataset.key === 'skills').dataset.json).length;
+    assertEq(after, before + 1);
+  });
+
+  test('add object key via modal prompt', async () => {
+    const card = fdoc().querySelectorAll('.card')[0];
+    const rootSum = [...card.querySelectorAll('summary')].find(s => s.dataset.path === '$');
+    rootSum.querySelector('.row-btn.add').click();
+    await sleep(80);
+    const inp = fdoc().getElementById('modalBody').querySelector('input');
+    assert(inp, 'modal prompt input not found');
+    inp.value = 'newkey_test';
+    fdoc().dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+    await sleep(80);
+    const c2 = fdoc().querySelectorAll('.card')[0];
+    assert([...c2.querySelectorAll('.key.editable')].some(k => k.dataset.key === 'newkey_test'));
+  });
+
+  test('Reset btn restores original via modal confirm', async () => {
+    const card = fdoc().querySelectorAll('.card')[0];
+    const resetBtn = [...card.querySelectorAll('.mini-btn')].find(b => b.textContent === 'Reset');
+    assert(resetBtn, 'reset btn missing');
+    resetBtn.click();
+    await confirmModal();
+    const c2 = fdoc().querySelectorAll('.card')[0];
+    assert([...c2.querySelectorAll('.str.editable')].some(s => s.dataset.raw === 'Alice Johnson'), 'original name not restored');
+    assert(!c2.classList.contains('dirty'), 'card still dirty');
+  });
+
+  test('per-card Delete + modal removes card', async () => {
+    const before = fdoc().querySelectorAll('.card').length;
+    const card = fdoc().querySelectorAll('.card')[1];
+    [...card.querySelectorAll('.mini-btn')].find(b => b.textContent === 'Delete').click();
+    await confirmModal();
+    assertEq(fdoc().querySelectorAll('.card').length, before - 1);
+  });
+
+  test('+ New item appends blank dirty card', async () => {
+    const before = fdoc().querySelectorAll('.card').length;
+    fdoc().getElementById('addItemBtn').click();
+    await sleep(40);
+    const after = fdoc().querySelectorAll('.card').length;
+    assertEq(after, before + 1);
+    assert(fdoc().querySelectorAll('.card')[after - 1].classList.contains('dirty'));
+  });
+
+  test('raw editor: invalid JSON shows error, valid saves', async () => {
+    const card = fdoc().querySelectorAll('.card')[fdoc().querySelectorAll('.card').length - 1];
+    [...card.querySelectorAll('.mini-btn')].find(b => b.textContent === 'Edit raw').click();
+    await sleep(40);
+    const ta = card.querySelector('.raw-editor textarea');
+    ta.value = '{not json';
+    ta.dispatchEvent(new Event('input', {bubbles:true}));
+    assert(ta.classList.contains('error'), 'invalid not flagged');
+    ta.value = '{"a":1,"b":[true,false]}';
+    ta.dispatchEvent(new Event('input', {bubbles:true}));
+    assert(!ta.classList.contains('error'));
+    [...card.querySelectorAll('.btn')].find(b => b.textContent === 'Save').click();
+    await sleep(60);
+    const c2 = fdoc().querySelectorAll('.card')[fdoc().querySelectorAll('.card').length - 1];
+    assert([...c2.querySelectorAll('.key.editable')].some(k => k.dataset.key === 'a'));
+  });
+
+  test('keyboard nav: n/p/j/k cycle active card', async () => {
+    // Fresh load so active = -1 and we know there are >=3 cards.
+    await reloadFrame();
+    await loadSampleFile('../sample/sample-data.json');
+    fdoc().dispatchEvent(new KeyboardEvent('keydown', {key:'n', bubbles:true}));
+    await sleep(40);
+    const a1 = fdoc().querySelector('.card.active')?.dataset.origIdx;
+    assert(a1 != null, 'no active after first n');
+    fdoc().dispatchEvent(new KeyboardEvent('keydown', {key:'n', bubbles:true}));
+    await sleep(40);
+    const a2 = fdoc().querySelector('.card.active')?.dataset.origIdx;
+    assert(a2 !== a1, 'n did not advance (a1=' + a1 + ' a2=' + a2 + ')');
+    fdoc().dispatchEvent(new KeyboardEvent('keydown', {key:'p', bubbles:true}));
+    await sleep(40);
+    const a3 = fdoc().querySelector('.card.active')?.dataset.origIdx;
+    assertEq(a3, a1, 'p did not return to previous');
+    fdoc().dispatchEvent(new KeyboardEvent('keydown', {key:'N', bubbles:true}));
+    await sleep(40);
+    const a4 = fdoc().querySelector('.card.active')?.dataset.origIdx;
+    assert(a4 !== a3, 'caps N did not advance');
+  });
+
+  test('save file (JSON-array source) with edits → JSON array', async () => {
+    const dl = captureNextDownload();
+    fdoc().getElementById('saveBtn').click();
+    const out = await dl;
+    assert(out.name.endsWith('.json'), 'expected .json: ' + out.name);
+    const parsed = JSON.parse(out.text);
+    assert(Array.isArray(parsed), 'not array');
+    assert(!fdoc().getElementById('dirtyBadge').classList.contains('show'), 'dirty not cleared');
+  });
+
+  test('load JSONL → save preserves jsonl shape', async () => {
+    await reloadFrame();
+    await loadSampleFile('../sample/sample-logs.jsonl');
+    const cards = fdoc().querySelectorAll('.card').length;
+    assertEq(cards, 7);
+    // edit one value
+    const card = fdoc().querySelectorAll('.card')[0];
+    const lvl = [...card.querySelectorAll('.str.editable')].find(s => s.dataset.raw === 'info');
+    lvl.dispatchEvent(new MouseEvent('dblclick', {bubbles:true, cancelable:true}));
+    const inp = fdoc().querySelectorAll('.card')[0].querySelector('.edit-input');
+    inp.value = 'INFO';
+    inp.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+    await sleep(40);
+    const dl = captureNextDownload();
+    fdoc().getElementById('saveBtn').click();
+    const out = await dl;
+    assert(out.name.endsWith('.jsonl'), 'expected jsonl: ' + out.name);
+    const lines = out.text.trim().split('\n');
+    assertEq(lines.length, 7);
+    assert(lines[0].includes('"INFO"'), 'edit not saved');
+  });
+
+  test('markdown toggle renders bold/code/link/list', async () => {
+    await reloadFrame();
+    // Build a synthetic file with markdown content
+    const sample = JSON.stringify({
+      title: '**Bold** and `code` and [link](https://example.com)',
+      body: '# Heading\n\n- one\n- two\n\n```js\nconst x = 1;\n```'
+    });
+    const file = new File([sample], 'md.json', {type:'application/json'});
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    const input = fdoc().getElementById('fileInput');
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change', {bubbles:true}));
+    await sleep(120);
+    // Toggle MD
+    const mt = fdoc().getElementById('mdToggle');
+    mt.checked = true;
+    mt.dispatchEvent(new Event('change', {bubbles:true}));
+    await sleep(60);
+    // Verify rendered nodes inside the title string
+    const card = fdoc().querySelectorAll('.card')[0];
+    const md = card.querySelector('.str.has-md .md-render');
+    assert(md, 'no md-render container');
+    assert(card.querySelector('.md-render strong'), 'bold not rendered');
+    assert(card.querySelector('.md-render code'), 'inline code not rendered');
+    const a = card.querySelector('.md-render a');
+    assert(a && a.href === 'https://example.com/', 'link not rendered: ' + a?.href);
+    assert(card.querySelector('.md-render h1'), 'heading not rendered');
+    assert(card.querySelector('.md-render ul li'), 'list not rendered');
+    assert(card.querySelector('.md-render pre code'), 'code block not rendered');
+    // Toggle off → no md-render
+    mt.checked = false;
+    mt.dispatchEvent(new Event('change', {bubbles:true}));
+    await sleep(60);
+    assert(!fdoc().querySelector('.md-render'), 'md still rendered after toggle off');
+  });
+
+  test('markdown sanitizes javascript: link', async () => {
+    const sample = JSON.stringify({attack: '[click](javascript:alert(1))'});
+    const file = new File([sample], 'attack.json', {type:'application/json'});
+    const dt = new DataTransfer(); dt.items.add(file);
+    const input = fdoc().getElementById('fileInput');
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change', {bubbles:true}));
+    await sleep(120);
+    const mt = fdoc().getElementById('mdToggle');
+    mt.checked = true;
+    mt.dispatchEvent(new Event('change', {bubbles:true}));
+    await sleep(60);
+    const a = fdoc().querySelector('.md-render a');
+    assert(a, 'no link');
+    assert(!/javascript:/i.test(a.href), 'javascript: passed through: ' + a.href);
+  });
+
+  test('Quick Copy summary toggle still works (no preventDefault block)', async () => {
+    await reloadFrame();
+    await loadSampleFile('../sample/sample-data.json');
+    const qc = fdoc().getElementById('quickCopyToggle');
+    qc.checked = true; qc.dispatchEvent(new Event('change', {bubbles:true}));
+    const card = fdoc().querySelectorAll('.card')[0];
+    const sum = [...card.querySelectorAll('summary')].find(s => s.dataset.path === '$');
+    const before = sum.parentElement.open;
+    sum.querySelector('.caret').click();
+    await sleep(40);
+    assert(sum.parentElement.open !== before, 'summary did not toggle');
+  });
+
+  /* ---------- Run ---------- */
+  async function runAll(){
+    $log.replaceChildren();
+    $sum.textContent = 'running…';
+    let ok = 0, fail = 0;
+    for (const t of tests){
+      const t0 = performance.now();
+      try {
+        await t.fn();
+        ok++;
+        logRow(t.name, true, null, Math.round(performance.now() - t0));
+      } catch (e){
+        fail++;
+        logRow(t.name, false, e, Math.round(performance.now() - t0));
+      }
+    }
+    $sum.replaceChildren();
+    const okSpan = document.createElement('span'); okSpan.className = 'ok'; okSpan.textContent = ok + ' passed';
+    const sep = document.createElement('span'); sep.textContent = ' · ';
+    const failSpan = document.createElement('span'); failSpan.className = fail ? 'fail' : 'ok'; failSpan.textContent = fail + ' failed';
+    $sum.append(okSpan, sep, failSpan);
+  }
+
+  $run.addEventListener('click', runAll);
+})();
+</script>
+</body>
+</html>
