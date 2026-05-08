@@ -1,47 +1,13 @@
-// js/main.js — temporary monolith; subsequent tasks split this file.
-(() => {
-  const el = (tag, cls, text) => {
-    const n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
-  };
-  const $ = id => document.getElementById(id);
-
-  const $stats       = $('stats');
-  const $dirtyBadge  = $('dirtyBadge');
-  const $dirtyCount  = $('dirtyCount');
-  const $list        = $('list');
-  const $drop        = $('drop');
-  const $file        = $('fileInput');
-  const $nl          = $('nlToggle');
-  const $md          = $('mdToggle');
-  const $themeToggle = $('themeToggle');
-  const $colorize    = $('colorizeToggle');
-  const $editToggle  = $('editToggle');
-  const $quickCopy   = $('quickCopyToggle');
-  const $search      = $('search');
-  const $expandAll   = $('expandAll');
-  const $collapseAll = $('collapseAll');
-  const $filterInfo  = $('filterInfo');
-  const $toast       = $('toast');
-  const $exportBtn   = $('exportBtn');
-  const $saveBtn     = $('saveBtn');
-  const $sortSel     = $('sortSel');
-  const $minTokens   = $('minTokens');
-  const $maxTokens   = $('maxTokens');
-  const $loadMore    = $('loadMore');
-  const $sidebar     = $('sidebar');
-  const $schemaKeys  = $('schemaKeys');
-  const $sideActions = $('sideActions');
-  const $clearKeys   = $('clearKeysBtn');
-  const $addRow      = $('addRow');
-  const $addItemBtn  = $('addItemBtn');
-  const $modal       = $('modal');
-  const $modalTitle  = $('modalTitle');
-  const $modalBody   = $('modalBody');
-  const $modalOk     = $('modalOk');
-  const $modalCancel = $('modalCancel');
+// js/main.js — bootstrap; modules extracted incrementally.
+import {
+  el, $, showToast, initTheme,
+  $stats, $dirtyBadge, $dirtyCount, $list, $drop, $file,
+  $nl, $md, $themeToggle, $colorize, $editToggle, $quickCopy,
+  $search, $expandAll, $collapseAll, $filterInfo, $toast,
+  $exportBtn, $saveBtn, $sortSel, $minTokens, $maxTokens, $loadMore,
+  $sidebar, $schemaKeys, $sideActions, $clearKeys, $addRow, $addItemBtn,
+  $modal, $modalTitle, $modalBody, $modalOk, $modalCancel
+} from './dom.js';
 
   let state = {
     fileName: '',
@@ -167,16 +133,6 @@
     renderFileTree();
   }
 
-  let toastTimer;
-  function showToast(msg, kind=''){
-    $toast.textContent = msg;
-    $toast.classList.remove('err');
-    if (kind === 'err') $toast.classList.add('err');
-    $toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(()=> $toast.classList.remove('show'), 2300);
-  }
-
   function setModalBodyText(text){
     $modalBody.replaceChildren();
     const p = el('p', null, text);
@@ -260,22 +216,6 @@
       setTimeout(()=>inp.focus(), 0);
     });
   }
-
-  /* Theme */
-  const savedTheme = localStorage.getItem('jsonl_viewer_theme');
-  if (savedTheme === 'dark' || savedTheme === 'light') {
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    $themeToggle.checked = (savedTheme === 'dark');
-  } else {
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    $themeToggle.checked = prefersDark;
-  }
-  $themeToggle.addEventListener('change', () => {
-    const theme = $themeToggle.checked ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('jsonl_viewer_theme', theme);
-    if (state.colorize) applyColorize();
-  });
 
   /* Path helpers */
   const identRe = /^[A-Za-z_$][\w$]*$/;
@@ -2059,9 +1999,9 @@
     });
   }
 
-  /* Init */
-  updateStats();
-  renderSidebar();
-  renderFileTree();
-  updateDirtyBadge();
-})();
+/* Init */
+initTheme();
+updateStats();
+renderSidebar();
+renderFileTree();
+updateDirtyBadge();
