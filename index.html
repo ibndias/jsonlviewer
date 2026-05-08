@@ -122,11 +122,57 @@
 
   main{padding:0 16px 40px; max-width:1280px; margin:16px auto 0}
 
-  .layout{display:grid; grid-template-columns:240px 1fr; gap:16px; align-items:start}
-  @media (max-width: 860px){
-    .layout{grid-template-columns:1fr}
-    .sidebar{position:static !important; max-height:none !important}
+  .layout{display:grid; grid-template-columns:230px 1fr 240px; gap:16px; align-items:start}
+  @media (max-width:1180px){
+    .layout{grid-template-columns:220px 1fr}
+    .right-col{display:none}
   }
+  @media (max-width:760px){
+    .layout{grid-template-columns:1fr}
+    .left-col, .sidebar{position:static !important; max-height:none !important}
+  }
+
+  .left-col, .right-col{position:sticky; top:104px; max-height:calc(100vh - 130px); overflow:auto}
+  .left-col > .side-section, .right-col > .side-section{
+    background:var(--panel); border:1px solid var(--border-soft); border-radius:var(--round-lg);
+    padding:14px 14px 12px; margin-bottom:12px; box-shadow:var(--shadow-sm)}
+  .left-col > .side-section:last-child, .right-col > .side-section:last-child{margin-bottom:0}
+
+  /* File tree */
+  .file-tree{display:flex; flex-direction:column; gap:2px}
+  .file-tree-empty{color:var(--muted-2); font:13px var(--sans); padding:4px 0}
+  .folder-row{display:flex; align-items:center; gap:5px; padding:4px 6px; cursor:pointer;
+              color:var(--muted); font:600 12px/1.2 var(--sans); user-select:none;
+              border-radius:6px; transition:background .12s}
+  .folder-row:hover{background:var(--panel-soft); color:var(--fg)}
+  .folder-caret{display:inline-block; width:6px; height:6px;
+                border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor;
+                transform:rotate(-45deg); transition:transform .15s; margin-left:2px}
+  .folder-row.open .folder-caret{transform:rotate(45deg)}
+  .folder-icon{font-size:13px; opacity:.85}
+  .folder-children{margin-left:14px; display:flex; flex-direction:column; gap:2px}
+  .folder-children.collapsed{display:none}
+  .file-row{display:flex; align-items:center; gap:6px; padding:5px 8px; cursor:pointer;
+            border-radius:7px; transition:background .12s; position:relative}
+  .file-row:hover{background:var(--panel-soft)}
+  .file-row.active{background:var(--accent-soft); color:var(--fg)}
+  .file-row.active .file-name{font-weight:600}
+  .file-row.dirty::before{content:""; width:5px; height:5px; border-radius:50%;
+                          background:var(--dirty); position:absolute; left:-1px; top:50%;
+                          transform:translateY(-50%)}
+  .file-icon{flex-shrink:0; color:var(--muted-2); font:11px var(--mono)}
+  .file-name{flex:1; min-width:0; font:500 12.5px/1.3 var(--sans);
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--fg)}
+  .file-meta{font:500 10.5px/1 var(--mono); color:var(--muted-2); flex-shrink:0;
+             font-feature-settings:"tnum"}
+  .file-close{flex-shrink:0; background:transparent; border:0; color:var(--muted-2);
+              cursor:pointer; padding:1px 4px; border-radius:4px; opacity:0; transition:opacity .12s}
+  .file-row:hover .file-close{opacity:1}
+  .file-close:hover{color:var(--err); background:color-mix(in oklab, var(--err) 12%, transparent)}
+  .files-toolbar{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
+  .files-toolbar .mini-btn{flex:1 1 auto; text-align:center; border:1px solid var(--border-soft)}
+  .right-hint{font:11.5px/1.4 var(--sans); color:var(--muted-2); padding:6px 0 0;
+              border-top:1px dashed var(--border-soft); margin-top:8px}
 
   .sidebar{position:sticky; top:104px; max-height:calc(100vh - 130px); overflow:auto;
            background:transparent; border:0; padding:0}
@@ -217,14 +263,24 @@
   .row-btn:hover{color:var(--fg); border-color:var(--border-soft); background:var(--panel-soft)}
   .row-btn.del:hover{color:var(--err); border-color:color-mix(in oklab, var(--err) 35%, transparent); background:color-mix(in oklab, var(--err) 8%, transparent)}
   .row-btn.add:hover{color:var(--accent); border-color:color-mix(in oklab, var(--accent) 35%, transparent); background:var(--accent-soft)}
-  /* Tree token colors — warm, subtle, reserved */
+  /* Tree token colors — high-contrast warm palette */
   :root{
-    --tok-key:#3D6D8A; --tok-idx:#8B6F2D; --tok-pun:#B0A892;
-    --tok-str:#985E2A; --tok-num:#557E5C; --tok-bool:#7A5BA8; --tok-nil:#9B8A78;
+    --tok-key:#205070;       /* deep teal-blue */
+    --tok-idx:#705416;       /* deep ochre */
+    --tok-pun:#5C5648;       /* dark warm gray (punctuation) */
+    --tok-str:#7A3D14;       /* deep terracotta-brown */
+    --tok-num:#2F5A38;       /* deep green */
+    --tok-bool:#52327E;      /* deep purple */
+    --tok-nil:#6E5C44;       /* warm brown */
   }
   :root[data-theme="dark"]{
-    --tok-key:#9DC4E0; --tok-idx:#D9C089; --tok-pun:#5F584C;
-    --tok-str:#E2A878; --tok-num:#9CCB9F; --tok-bool:#C4A5E3; --tok-nil:#A89A87;
+    --tok-key:#B6D5EA;
+    --tok-idx:#EDD499;
+    --tok-pun:#9C9483;
+    --tok-str:#F0BC8E;
+    --tok-num:#ABDAB1;
+    --tok-bool:#DAB8F1;
+    --tok-nil:#C2B49D;
   }
   .key{color:var(--tok-key)}
   .idx{color:var(--tok-idx); font-weight:500}
@@ -238,10 +294,12 @@
   details.tree-node{margin-left:18px}
   details.tree-node>summary{list-style:none; cursor:pointer; display:inline-flex; align-items:baseline; gap:6px}
   details.tree-node>summary::-webkit-details-marker{display:none}
-  .caret{display:inline-block; width:0; height:0; border-style:solid; border-width:4px 0 4px 6px;
-         border-color:transparent transparent transparent var(--muted-2); margin-right:4px;
-         transform:translateY(1px) rotate(0deg); transition:transform .15s}
-  details[open] > summary .caret{transform:translateY(1px) rotate(90deg); border-color:var(--muted)}
+  .caret{display:inline-block; width:7px; height:7px;
+         border-right:1.5px solid var(--muted);
+         border-bottom:1.5px solid var(--muted);
+         transform:rotate(-45deg) translateY(-1px);
+         transition:transform .15s; margin-right:6px}
+  details[open] > summary .caret{transform:rotate(45deg) translateY(-2px); border-color:var(--fg)}
   .children{margin-left:18px; border-left:1px solid var(--border-soft); padding-left:12px; margin-top:6px}
   .node-head{color:var(--muted-2)}
   .node-meta{color:var(--muted-2); font-style:italic; font-size:.92em}
@@ -347,7 +405,7 @@
         <div class="controls">
           <label class="file-btn" title="Open a .json / .jsonl / .txt / .log file">
             Open
-            <input class="file-input" id="fileInput" type="file" accept=".jsonl,.json,.txt,.log" />
+            <input class="file-input" id="fileInput" type="file" multiple accept=".jsonl,.json,.txt,.log" />
           </label>
           <button class="btn" id="exportBtn" title="Download visible (filtered, non-excluded) items as JSONL">Export</button>
           <button class="btn primary" id="saveBtn" title="Download all items (with edits) in original format (Ctrl+S)">Save</button>
@@ -415,28 +473,19 @@
   </header>
 
   <main class="layout">
-    <aside class="sidebar" id="sidebar">
+    <aside class="left-col" id="filesPanel">
       <div class="side-section">
-        <div class="side-title">Schema · top-level keys</div>
-        <div class="side-keys" id="schemaKeys">
-          <div class="side-empty">Load a file to see keys.</div>
+        <div class="side-title">Files</div>
+        <div class="file-tree" id="fileTree">
+          <div class="file-tree-empty">No files open. Drop here or use the buttons below.</div>
         </div>
-      </div>
-      <div class="side-section" id="sideActions" style="display:none">
-        <button class="btn-link" id="clearKeysBtn">clear key filters</button>
-      </div>
-      <div class="side-section">
-        <div class="side-title">Tips</div>
-        <div class="kbd-hint">
-          <div><kbd>/</kbd> focus search</div>
-          <div><kbd>n</kbd>/<kbd>p</kbd> next / prev item</div>
-          <div><kbd>e</kbd>/<kbd>c</kbd> expand / collapse active</div>
-          <div><kbd>x</kbd> toggle exclude active</div>
-          <div><kbd>Del</kbd> delete active item</div>
-          <div><kbd>Ctrl</kbd>+<kbd>S</kbd> save file</div>
-          <div>dbl-click value to edit</div>
-          <div><kbd>Esc</kbd> cancel edit / clear search</div>
+        <div class="files-toolbar">
+          <button class="mini-btn" id="addFilesBtn" title="Open one or more files">+ Files</button>
+          <button class="mini-btn" id="addFolderBtn" title="Open a whole folder (Chrome/Edge/Safari)">+ Folder</button>
         </div>
+        <input class="file-input" id="filesInput" type="file" multiple accept=".jsonl,.json,.txt,.log" />
+        <input class="file-input" id="folderInput" type="file" webkitdirectory directory />
+        <div class="right-hint">Drop multiple files or a folder here. Click a file to switch. Schema for the active file appears on the right.</div>
       </div>
     </aside>
 
@@ -461,6 +510,31 @@
         <span class="credit">JSON/JSONL Viewer — by <a href="https://github.com/ibndias" target="_blank" rel="noopener"><strong>ibndias</strong></a></span>
       </div>
     </section>
+
+    <aside class="right-col sidebar" id="sidebar">
+      <div class="side-section">
+        <div class="side-title">Schema · top-level keys</div>
+        <div class="side-keys" id="schemaKeys">
+          <div class="side-empty">Load a file to see keys.</div>
+        </div>
+      </div>
+      <div class="side-section" id="sideActions" style="display:none">
+        <button class="btn-link" id="clearKeysBtn">clear key filters</button>
+      </div>
+      <div class="side-section">
+        <div class="side-title">Tips</div>
+        <div class="kbd-hint">
+          <div><kbd>/</kbd> focus search</div>
+          <div><kbd>n</kbd>/<kbd>p</kbd> next / prev item</div>
+          <div><kbd>e</kbd>/<kbd>c</kbd> expand / collapse active</div>
+          <div><kbd>x</kbd> toggle exclude active</div>
+          <div><kbd>Del</kbd> delete active item</div>
+          <div><kbd>Ctrl</kbd>+<kbd>S</kbd> save file</div>
+          <div>dbl-click value to edit</div>
+          <div><kbd>Esc</kbd> cancel edit / clear search</div>
+        </div>
+      </div>
+    </aside>
   </main>
 
   <div id="toast" class="toast"></div>
@@ -540,7 +614,109 @@
     pagesShown: 1,
     viewItems: [],
     activeOrigIdx: -1,
+    files: [],          // [{id, folder, snapshot}]
+    activeId: null,
   };
+  let _fileIdCounter = 0;
+  const newFileId = () => 'f' + (++_fileIdCounter);
+
+  /* ---- Per-file snapshot helpers ---- */
+  // Save current per-file state into the active file's snapshot.
+  function snapshotCurrent(){
+    if (!state.activeId) return;
+    const f = state.files.find(x => x.id === state.activeId);
+    if (!f) return;
+    f.snapshot = {
+      fileName: state.fileName,
+      mode: state.mode,
+      sourceShape: state.sourceShape,
+      items: state.items,
+      schema: state.schema,
+      selectedKeys: new Set(state.selectedKeys),
+      searchQuery: state.searchQuery,
+      minTokens: state.minTokens,
+      maxTokens: state.maxTokens,
+      sortMode: state.sortMode,
+      pagesShown: state.pagesShown,
+      viewItems: state.viewItems,
+      activeOrigIdx: state.activeOrigIdx,
+    };
+  }
+  function applyFromFile(f){
+    const s = f.snapshot;
+    if (!s) return;
+    state.fileName = s.fileName;
+    state.mode = s.mode;
+    state.sourceShape = s.sourceShape;
+    state.items = s.items;
+    state.schema = s.schema;
+    state.selectedKeys = new Set(s.selectedKeys);
+    state.searchQuery = s.searchQuery;
+    state.minTokens = s.minTokens;
+    state.maxTokens = s.maxTokens;
+    state.sortMode = s.sortMode;
+    state.pagesShown = s.pagesShown;
+    state.viewItems = s.viewItems;
+    state.activeOrigIdx = s.activeOrigIdx;
+    state.activeId = f.id;
+    $search.value = state.searchQuery || '';
+    $minTokens.value = state.minTokens != null ? state.minTokens : '';
+    $maxTokens.value = state.maxTokens != null ? state.maxTokens : '';
+    $sortSel.value = state.sortMode;
+  }
+  function switchToFile(id){
+    if (!id || state.activeId === id) return;
+    snapshotCurrent();
+    const f = state.files.find(x => x.id === id);
+    if (!f) return;
+    applyFromFile(f);
+    renderFileTree();
+    analyzeSchema();
+    renderSidebar();
+    renderView();
+    // Compact drop banner reflects the active file.
+    if ($drop && state.fileName){
+      $drop.classList.add('compact');
+      const main = $drop.firstElementChild;
+      main.replaceChildren();
+      main.append(el('strong', null, state.fileName),
+                  document.createTextNode(' active — drop or click to load more files.'));
+    }
+  }
+  function closeFile(id){
+    const idx = state.files.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    if (state.activeId === id){
+      // Wipe current state; if other files exist, switch to next.
+      const next = state.files[idx + 1] || state.files[idx - 1] || null;
+      state.files.splice(idx, 1);
+      if (next){
+        state.activeId = null;
+        applyFromFile(next);
+        analyzeSchema(); renderSidebar(); renderView();
+      } else {
+        state.activeId = null;
+        resetView();
+        state.fileName = '';
+        $drop.classList.remove('compact');
+        const main = $drop.firstElementChild;
+        main.replaceChildren();
+        const s = el('strong', null, 'Drag & drop');
+        main.append(s,
+          document.createTextNode(' a '),
+          el('code', null, '.json'),
+          document.createTextNode(' or '),
+          el('code', null, '.jsonl'),
+          document.createTextNode(' file here, or click '),
+          el('em', null, 'Open'),
+          document.createTextNode('.'));
+        analyzeSchema(); renderSidebar(); renderView(); updateStats();
+      }
+    } else {
+      state.files.splice(idx, 1);
+    }
+    renderFileTree();
+  }
 
   let toastTimer;
   function showToast(msg, kind=''){
@@ -1783,6 +1959,8 @@
     } else {
       $dirtyBadge.classList.remove('show');
     }
+    // Reflect dirty state on the file-tree row.
+    renderFileTree();
   }
 
   /* Active card / keyboard nav */
@@ -1883,15 +2061,9 @@
     updateDirtyBadge();
   }
 
-  async function loadFile(file){
-    if (state.items.some(it => it.dirty || it.deleted)){
-      const ok = await confirmModal({
-        title:'Discard unsaved edits?',
-        body:'Loading a new file will discard unsaved edits in the current file.',
-        okLabel:'Discard & Load', dangerous:true
-      });
-      if (!ok) return;
-    }
+  // Parse a single File into the current state slot. Used by both initial
+  // load (no prior file) and append-as-new-file (multi-file mode).
+  async function _parseFileIntoState(file, folder=''){
     resetView();
     state.fileName = file.name;
     updateStats();
@@ -1910,16 +2082,124 @@
     }
     items.forEach((it, i) => { it.origIdx = i; });
     state.items = items;
+  }
+
+  async function loadFile(file, opts={}){
+    const folder = opts.folder || '';
+    // If we have an active file with edits, snapshot it before parking;
+    // we now ALWAYS open additional files as new tabs (no overwrite).
+    snapshotCurrent();
+    await _parseFileIntoState(file, folder);
+
+    // Register new file slot.
+    const id = newFileId();
+    const slot = {id, folder, snapshot:null};
+    state.files.push(slot);
+    state.activeId = id;
+    snapshotCurrent();
 
     analyzeSchema();
     renderSidebar();
     renderView();
+    renderFileTree();
 
     $drop.classList.add('compact');
     const main = $drop.firstElementChild;
     main.replaceChildren();
-    const strong = el('strong', null, file.name);
-    main.append(strong, document.createTextNode(' loaded — drop or click to load another file.'));
+    main.append(el('strong', null, file.name),
+                document.createTextNode(' active — drop more, click ‹+ Files› / ‹+ Folder›, or pick another from the left.'));
+  }
+
+  async function loadFiles(fileList, opts={}){
+    if (!fileList || !fileList.length) return;
+    // For folder upload, use webkitRelativePath as folder source.
+    const filtered = [...fileList].filter(f => /\.(json|jsonl|txt|log)$/i.test(f.name));
+    if (!filtered.length){ showToast('No .json/.jsonl files found', 'err'); return; }
+    for (const f of filtered){
+      const rel = f.webkitRelativePath || '';
+      const folder = rel ? rel.split('/').slice(0,-1).join('/') : (opts.folder || '');
+      await loadFile(f, {folder});
+    }
+    showToast(`Loaded ${filtered.length} file${filtered.length===1?'':'s'}`);
+  }
+
+  /* ---------- File tree render ---------- */
+  function renderFileTree(){
+    const tree = $('fileTree');
+    if (!tree) return;
+    if (!state.files.length){
+      tree.replaceChildren(el('div','file-tree-empty','No files open. Drop here or use the buttons below.'));
+      return;
+    }
+    // Group by folder path
+    const groups = new Map(); // folderPath -> [slots]
+    for (const f of state.files){
+      const k = f.folder || '';
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(f);
+    }
+    const frag = document.createDocumentFragment();
+    // Root files first (no folder)
+    if (groups.has('')){
+      for (const slot of groups.get('')) frag.append(buildFileRow(slot));
+      groups.delete('');
+    }
+    const folderNames = [...groups.keys()].sort();
+    for (const fname of folderNames){
+      frag.append(buildFolderRow(fname, groups.get(fname)));
+    }
+    tree.replaceChildren(frag);
+  }
+  function buildFileRow(slot){
+    const live = (slot.id === state.activeId);
+    const s = live ? state : (slot.snapshot || {});
+    const row = el('div','file-row');
+    row.dataset.id = slot.id;
+    if (live) row.classList.add('active');
+    const items = s.items || [];
+    const dirty = items.some(it => it.dirty || it.deleted);
+    if (dirty) row.classList.add('dirty');
+    const ext = (s.fileName || '').toLowerCase().endsWith('.jsonl') ? 'JSONL' : 'JSON';
+    row.append(
+      el('span','file-icon', ext),
+      el('span','file-name', s.fileName || '(untitled)'),
+      el('span','file-meta', String(items.filter(it=>!it.deleted).length))
+    );
+    const close = el('button','file-close','×');
+    close.title = 'Close file';
+    close.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (dirty){
+        const ok = await confirmModal({
+          title:'Close file with unsaved edits?',
+          body:'Edits in “' + (s.fileName || 'this file') + '” will be lost.',
+          okLabel:'Close', dangerous:true
+        });
+        if (!ok) return;
+      }
+      closeFile(slot.id);
+    });
+    row.append(close);
+    row.addEventListener('click', () => switchToFile(slot.id));
+    return row;
+  }
+  function buildFolderRow(name, slots){
+    const wrap = document.createDocumentFragment();
+    const head = el('div','folder-row open');
+    head.append(
+      el('span','folder-caret'),
+      el('span','folder-icon','📁'),
+      el('span','file-name', name + '/'),
+      el('span','file-meta', String(slots.length))
+    );
+    const kids = el('div','folder-children');
+    for (const slot of slots) kids.append(buildFileRow(slot));
+    head.addEventListener('click', () => {
+      const isOpen = head.classList.toggle('open') === false ? false : head.classList.contains('open');
+      kids.classList.toggle('collapsed', !isOpen);
+    });
+    wrap.append(head, kids);
+    return wrap;
   }
 
   /* Add new item */
@@ -2038,7 +2318,8 @@
     renderView();
   });
 
-  /* Drag & drop */
+  /* Drag & drop — multi-file capable. Tries to read folders too via
+     DataTransferItem.webkitGetAsEntry where supported. */
   ;['dragenter','dragover'].forEach(ev => {
     document.addEventListener(ev, e => {
       e.preventDefault(); e.stopPropagation();
@@ -2049,20 +2330,83 @@
     document.addEventListener(ev, e => {
       e.preventDefault(); e.stopPropagation();
       if (ev === 'drop'){
-        const file = e.dataTransfer?.files?.[0];
-        if (file) loadFile(file);
+        handleDrop(e);
       }
       $drop.classList.remove('active');
     });
   });
+  async function handleDrop(e){
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    // Try entry API for folder support
+    const entries = [];
+    if (dt.items && dt.items.length){
+      for (const it of dt.items){
+        if (typeof it.webkitGetAsEntry === 'function'){
+          const ent = it.webkitGetAsEntry();
+          if (ent) entries.push(ent);
+        }
+      }
+    }
+    if (entries.length){
+      const collected = [];
+      for (const ent of entries){
+        await collectEntry(ent, '', collected);
+      }
+      if (collected.length){ await loadFiles(collected); return; }
+    }
+    // Fallback: plain files list
+    if (dt.files && dt.files.length) await loadFiles(dt.files);
+  }
+  function collectEntry(entry, folderPath, out){
+    return new Promise(resolve => {
+      if (entry.isFile){
+        entry.file(file => {
+          // Decorate webkitRelativePath via folderPath
+          if (folderPath) try { Object.defineProperty(file, 'webkitRelativePath', {value: folderPath + '/' + file.name}); } catch {}
+          out.push(file);
+          resolve();
+        }, () => resolve());
+      } else if (entry.isDirectory){
+        const reader = entry.createReader();
+        const next = folderPath ? folderPath + '/' + entry.name : entry.name;
+        const readBatch = () => reader.readEntries(async (batch) => {
+          if (!batch.length){ resolve(); return; }
+          for (const child of batch) await collectEntry(child, next, out);
+          readBatch();
+        }, () => resolve());
+        readBatch();
+      } else { resolve(); }
+    });
+  }
 
-  /* Open dialog */
-  $file.addEventListener('change', e => {
-    const f = e.target.files?.[0];
-    if (f) loadFile(f);
-    $file.value = '';
-  });
-  $drop.addEventListener('click', () => $file.click());
+  /* Header Open: opens the multi-file picker.  */
+  const $filesInput = $('filesInput');
+  const $folderInput = $('folderInput');
+  if ($file){
+    $file.addEventListener('change', async (e) => {
+      const fs = e.target.files;
+      if (fs && fs.length) await loadFiles(fs);
+      $file.value = '';
+    });
+  }
+  if ($filesInput){
+    $filesInput.addEventListener('change', async (e) => {
+      await loadFiles(e.target.files);
+      $filesInput.value = '';
+    });
+  }
+  if ($folderInput){
+    $folderInput.addEventListener('change', async (e) => {
+      await loadFiles(e.target.files);
+      $folderInput.value = '';
+    });
+  }
+  $drop.addEventListener('click', () => $filesInput ? $filesInput.click() : $file.click());
+  const $addFilesBtn = $('addFilesBtn');
+  const $addFolderBtn = $('addFolderBtn');
+  if ($addFilesBtn) $addFilesBtn.addEventListener('click', () => $filesInput.click());
+  if ($addFolderBtn) $addFolderBtn.addEventListener('click', () => $folderInput.click());
 
   /* Toggles */
   $nl.addEventListener('change', () => {
@@ -2269,6 +2613,7 @@
   /* Init */
   updateStats();
   renderSidebar();
+  renderFileTree();
   updateDirtyBadge();
 })();
 </script>
