@@ -50,7 +50,7 @@ export function showToast(msg, kind=''){
   if (kind === 'err') $toast.classList.add('err');
   $toast.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => $toast.classList.remove('show'), 1600);
+  toastTimer = setTimeout(() => $toast.classList.remove('show'), 2300);
 }
 
 export function initTheme(){
@@ -63,9 +63,4 @@ export function initTheme(){
     document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
     $themeToggle.checked = prefersDark;
   }
-  $themeToggle.addEventListener('change', () => {
-    const theme = $themeToggle.checked ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('jsonl_viewer_theme', theme);
-  });
 }

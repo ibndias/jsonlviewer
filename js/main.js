@@ -1822,6 +1822,12 @@ import {
       ? 'Edit ON — dbl-click any value, hover rows for ＋／✕'
       : 'Edit OFF (dbl-click still works)');
   });
+  $themeToggle.addEventListener('change', () => {
+    const theme = $themeToggle.checked ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('jsonl_viewer_theme', theme);
+    if (state.colorize) applyColorize();
+  });
 
   /* Search */
   let searchTimer;
