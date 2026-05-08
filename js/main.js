@@ -10,32 +10,7 @@ import {
 } from './dom.js';
 import { confirmModal, promptKey } from './modal.js';
 import { pathKey, pathIdx, parsePath, walkPath, estimateTokens, fmtNum } from './path.js';
-
-  let state = {
-    fileName: '',
-    mode: 'unknown',
-    sourceShape: 'array',
-    modeNewlines: true,
-    colorize: false,
-    quickCopy: false,
-    markdown: false,
-    editMode: false,
-    items: [],
-    schema: new Map(),
-    selectedKeys: new Set(),
-    searchQuery: '',
-    minTokens: null,
-    maxTokens: null,
-    sortMode: 'default',
-    pageSize: 200,
-    pagesShown: 1,
-    viewItems: [],
-    activeOrigIdx: -1,
-    files: [],          // [{id, folder, snapshot}]
-    activeId: null,
-  };
-  let _fileIdCounter = 0;
-  const newFileId = () => 'f' + (++_fileIdCounter);
+import { state, newFileId, liveItems } from './state.js';
 
   /* ---- Per-file snapshot helpers ---- */
   // Save current per-file state into the active file's snapshot.
@@ -1062,8 +1037,6 @@ import { pathKey, pathIdx, parsePath, walkPath, estimateTokens, fmtNum } from '.
   }
 
   /* Schema sidebar */
-  function liveItems(){ return state.items.filter(it => !it.deleted); }
-
   function analyzeSchema(){
     const m = new Map();
     for (const it of liveItems()){
