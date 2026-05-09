@@ -69,10 +69,7 @@ export function switchToFile(id){
   // Compact drop banner reflects the active file.
   if ($drop && state.fileName){
     $drop.classList.add('compact');
-    const main = $drop.firstElementChild;
-    main.replaceChildren();
-    main.append(el('strong', null, state.fileName),
-                document.createTextNode(' active — drop or click to load more files.'));
+    $drop.style.display = 'none';
   }
 }
 export async function closeFile(id){
@@ -179,10 +176,7 @@ export async function loadFile(file, opts={}){
   renderFileTree();
 
   $drop.classList.add('compact');
-  const main = $drop.firstElementChild;
-  main.replaceChildren();
-  main.append(el('strong', null, file.name),
-              document.createTextNode(' active — drop more, click ‹+ Files› / ‹+ Folder›, or pick another from the left.'));
+  $drop.style.display = 'none';
 
   // Persist to IDB unless suppressed (cache restore path).
   if (!opts.suppressFlush){

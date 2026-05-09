@@ -284,6 +284,5 @@ export function refreshStatusBar(){
   if (!bar) return;
   const proj = getActiveProject();
   const fileCount = state.files.length;
-  const errCount = state.items.filter(it => it.error).length;
-  bar.textContent = `${proj ? proj.name : 'Untitled'}  ·  ${fileCount} ${fileCount === 1 ? 'file' : 'files'}  ·  ${state.items.filter(it => !it.deleted).length} items  ·  ${errCount} errors`;
+  bar.textContent = `${proj ? proj.name : 'Untitled'}  ·  ${fileCount} ${fileCount === 1 ? 'file' : 'files'}`;
 }

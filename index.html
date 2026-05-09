@@ -71,6 +71,99 @@
     }
   }
 
+  /* ===================== Theme presets ===================== */
+  :root[data-theme="dracula"]{
+    --bg:#282A36; --bg-soft:#21222C; --panel:#343746; --panel-soft:#2D2F3D;
+    --fg:#F8F8F2; --muted:#A4A8B8; --muted-2:#6272A4;
+    --border:#44475A; --border-soft:#383A4A; --chip:#3A3C4D;
+    --accent:#BD93F9; --accent-2:#A682E0; --accent-soft:#3D3457;
+    --ok:#50FA7B; --warn:#F1FA8C; --err:#FF5555; --dirty:#FFB86C;
+    --tok-key:#8BE9FD; --tok-idx:#FFB86C; --tok-pun:#6272A4;
+    --tok-str:#F1FA8C; --tok-num:#BD93F9; --tok-bool:#FF79C6; --tok-nil:#6272A4;
+  }
+  :root[data-theme="monokai"]{
+    --bg:#272822; --bg-soft:#21221C; --panel:#2D2E27; --panel-soft:#34352E;
+    --fg:#F8F8F2; --muted:#A6A695; --muted-2:#75715E;
+    --border:#3E3D32; --border-soft:#34352E; --chip:#383830;
+    --accent:#A6E22E; --accent-2:#94D11C; --accent-soft:#3A4A1A;
+    --ok:#A6E22E; --warn:#FD971F; --err:#F92672; --dirty:#FD971F;
+    --tok-key:#66D9EF; --tok-idx:#FD971F; --tok-pun:#75715E;
+    --tok-str:#E6DB74; --tok-num:#AE81FF; --tok-bool:#F92672; --tok-nil:#75715E;
+  }
+  :root[data-theme="nord"]{
+    --bg:#2E3440; --bg-soft:#272B36; --panel:#3B4252; --panel-soft:#343A47;
+    --fg:#ECEFF4; --muted:#9EA5B5; --muted-2:#65728C;
+    --border:#434C5E; --border-soft:#3B4252; --chip:#404758;
+    --accent:#88C0D0; --accent-2:#76A8B7; --accent-soft:#3A4D5A;
+    --ok:#A3BE8C; --warn:#EBCB8B; --err:#BF616A; --dirty:#D08770;
+    --tok-key:#8FBCBB; --tok-idx:#D08770; --tok-pun:#616E88;
+    --tok-str:#A3BE8C; --tok-num:#B48EAD; --tok-bool:#5E81AC; --tok-nil:#616E88;
+  }
+  :root[data-theme="solarized-dark"]{
+    --bg:#002B36; --bg-soft:#01242E; --panel:#073642; --panel-soft:#053140;
+    --fg:#FDF6E3; --muted:#93A1A1; --muted-2:#586E75;
+    --border:#0E4451; --border-soft:#0A3A47; --chip:#0E4451;
+    --accent:#268BD2; --accent-2:#1B6BA3; --accent-soft:#0C3B58;
+    --ok:#859900; --warn:#B58900; --err:#DC322F; --dirty:#CB4B16;
+    --tok-key:#268BD2; --tok-idx:#B58900; --tok-pun:#586E75;
+    --tok-str:#2AA198; --tok-num:#D33682; --tok-bool:#6C71C4; --tok-nil:#586E75;
+  }
+  :root[data-theme="solarized-light"]{
+    --bg:#FDF6E3; --bg-soft:#F5EFD8; --panel:#EEE8D5; --panel-soft:#E7E2C8;
+    --fg:#073642; --muted:#586E75; --muted-2:#93A1A1;
+    --border:#D6CFAB; --border-soft:#E0DAB6; --chip:#E0DAB6;
+    --accent:#268BD2; --accent-2:#1B6BA3; --accent-soft:#CBE2F2;
+    --ok:#859900; --warn:#B58900; --err:#DC322F; --dirty:#CB4B16;
+    --tok-key:#268BD2; --tok-idx:#B58900; --tok-pun:#93A1A1;
+    --tok-str:#2AA198; --tok-num:#D33682; --tok-bool:#6C71C4; --tok-nil:#93A1A1;
+  }
+  :root[data-theme="github-light"]{
+    --bg:#FFFFFF; --bg-soft:#F6F8FA; --panel:#FFFFFF; --panel-soft:#F6F8FA;
+    --fg:#1F2328; --muted:#656D76; --muted-2:#8C959F;
+    --border:#D0D7DE; --border-soft:#E4E7EB; --chip:#EAEEF2;
+    --accent:#0969DA; --accent-2:#0550AE; --accent-soft:#DDF4FF;
+    --ok:#1A7F37; --warn:#9A6700; --err:#CF222E; --dirty:#BC4C00;
+    --tok-key:#0550AE; --tok-idx:#9A6700; --tok-pun:#6E7781;
+    --tok-str:#0A3069; --tok-num:#0550AE; --tok-bool:#8250DF; --tok-nil:#6E7781;
+  }
+  :root[data-theme="github-dark"]{
+    --bg:#0D1117; --bg-soft:#010409; --panel:#161B22; --panel-soft:#1C2128;
+    --fg:#E6EDF3; --muted:#7D8590; --muted-2:#484F58;
+    --border:#30363D; --border-soft:#21262D; --chip:#21262D;
+    --accent:#2F81F7; --accent-2:#1F6FEB; --accent-soft:#0C2D6B;
+    --ok:#3FB950; --warn:#D29922; --err:#F85149; --dirty:#DB6D28;
+    --tok-key:#79C0FF; --tok-idx:#D29922; --tok-pun:#8B949E;
+    --tok-str:#A5D6FF; --tok-num:#79C0FF; --tok-bool:#FF7B72; --tok-nil:#8B949E;
+  }
+  :root[data-theme="tokyo-night"]{
+    --bg:#1A1B26; --bg-soft:#16161E; --panel:#24283B; --panel-soft:#1F2335;
+    --fg:#C0CAF5; --muted:#9AA5CE; --muted-2:#565F89;
+    --border:#3B4262; --border-soft:#2E3349; --chip:#2E3349;
+    --accent:#7AA2F7; --accent-2:#5887D1; --accent-soft:#2E3D5C;
+    --ok:#9ECE6A; --warn:#E0AF68; --err:#F7768E; --dirty:#FF9E64;
+    --tok-key:#7AA2F7; --tok-idx:#FF9E64; --tok-pun:#565F89;
+    --tok-str:#9ECE6A; --tok-num:#FF9E64; --tok-bool:#BB9AF7; --tok-nil:#565F89;
+  }
+  :root[data-theme="one-dark"]{
+    --bg:#282C34; --bg-soft:#21252B; --panel:#2C313A; --panel-soft:#252A33;
+    --fg:#ABB2BF; --muted:#828997; --muted-2:#5C6370;
+    --border:#3E4451; --border-soft:#353B45; --chip:#353B45;
+    --accent:#61AFEF; --accent-2:#4F8FCC; --accent-soft:#2D3D52;
+    --ok:#98C379; --warn:#E5C07B; --err:#E06C75; --dirty:#D19A66;
+    --tok-key:#E06C75; --tok-idx:#D19A66; --tok-pun:#5C6370;
+    --tok-str:#98C379; --tok-num:#D19A66; --tok-bool:#C678DD; --tok-nil:#5C6370;
+  }
+  :root[data-theme="gruvbox"]{
+    --bg:#282828; --bg-soft:#1D2021; --panel:#32302F; --panel-soft:#2A2A2A;
+    --fg:#EBDBB2; --muted:#A89984; --muted-2:#7C6F64;
+    --border:#504945; --border-soft:#3C3836; --chip:#3C3836;
+    --accent:#FE8019; --accent-2:#D65D0E; --accent-soft:#5A2A0B;
+    --ok:#B8BB26; --warn:#FABD2F; --err:#FB4934; --dirty:#FE8019;
+    --tok-key:#83A598; --tok-idx:#FABD2F; --tok-pun:#928374;
+    --tok-str:#B8BB26; --tok-num:#D3869B; --tok-bool:#FE8019; --tok-nil:#928374;
+  }
+  /* ========================================================== */
+
   *,*::before,*::after{box-sizing:border-box}
   html,body{height:100%}
   body{margin:0; background:var(--bg); color:var(--fg);
@@ -209,7 +302,8 @@
     font:600 var(--fs-xs)/1 var(--sans); text-transform:uppercase; letter-spacing:.05em;
     padding:var(--s-1) var(--s-2); border-radius:var(--r-sm);
   }
-  .badge-ok{color:var(--ok); background:color-mix(in oklab, var(--ok) 10%, transparent)}
+  /* OK is implicit when no error badge — hide to reduce noise. */
+  .badge-ok{display:none}
   .badge-err{color:var(--err); background:color-mix(in oklab, var(--err) 10%, transparent)}
   .badge-excluded{color:var(--warn); background:color-mix(in oklab, var(--warn) 10%, transparent)}
   .badge-dirty{display:none; align-items:center; gap:var(--s-1); color:var(--dirty); background:color-mix(in oklab, var(--dirty) 10%, transparent)}
@@ -386,11 +480,14 @@
 
   .status-bar{
     position:fixed; bottom:0; left:0; right:0;
-    height:26px; padding:0 var(--s-5);
-    display:flex; align-items:center;
+    height:26px; padding:0 var(--s-4);
+    display:flex; align-items:center; gap:var(--s-3);
     background:var(--panel); border-top:1px solid var(--border-soft);
     font:var(--fs-sm)/1 var(--sans); color:var(--muted); z-index:50;
+    overflow:hidden; white-space:nowrap;
   }
+  .status-bar #stats{ color:var(--muted); }
+  .status-sep{ color:var(--muted-2); }
 
   /* Hide schema column when toggled */
   .shell.schema-hidden{grid-template-columns:48px 260px 1fr}
@@ -771,10 +868,11 @@
   <header class="topbar">
     <h1><span class="accent-dot"></span>JSONL Viewer</h1>
     <button class="chip project-chip" id="projectChip" title="Switch project">Untitled &#x25BE;</button>
-    <span class="chip" id="stats">No file loaded</span>
-    <span class="dirty-badge" id="dirtyBadge"><span class="dot"></span><span id="dirtyCount">0 modified</span></span>
     <div style="flex:1"></div>
     <div class="controls">
+      <a class="btn ghost" id="githubBtn" href="https://github.com/ibndias/jsonlviewer" target="_blank" rel="noopener" title="GitHub repository" aria-label="GitHub">
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.27-.01-1-.02-1.96-3.2.7-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.34.95.1-.74.4-1.25.72-1.54-2.55-.29-5.23-1.27-5.23-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.15 1.17a10.94 10.94 0 0 1 5.74 0c2.18-1.48 3.14-1.17 3.14-1.17.62 1.59.23 2.76.11 3.05.74.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.25 5.65.41.36.78 1.07.78 2.16 0 1.56-.01 2.81-.01 3.19 0 .31.21.68.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+      </a>
       <button class="btn ghost" id="settingsBtn" title="Settings" aria-label="Settings">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
@@ -818,8 +916,10 @@
           <div class="file-tree-empty">No files open. Drop or open.</div>
         </div>
         <div class="files-toolbar">
-          <button class="mini-btn" id="addFilesBtn" title="Open files">+ Files</button>
-          <button class="mini-btn" id="addFolderBtn" title="Open folder">+ Folder</button>
+          <button class="mini-btn" id="addFilesBtn" title="Open file(s)" style="flex:1">+ Open</button>
+          <button class="mini-btn" id="addFolderBtn" title="Open a folder" aria-label="Open folder">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px; height:14px"><path d="M6 14h13l3-7H8l-2 2v5z"/><path d="M2 8a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v2"/></svg>
+          </button>
         </div>
         <input class="file-input" id="filesInput" type="file" multiple accept=".jsonl,.json,.txt,.log" />
         <input class="file-input" id="folderInput" type="file" webkitdirectory directory />
@@ -888,7 +988,24 @@
           <input id="colorizeToggle" type="checkbox" checked />
           <span>Colorize keys</span>
         </label>
-        <label class="switch" title="Dark theme">
+        <div class="control-group" title="Theme">
+          <label for="themeSelect" style="color:var(--muted); font-size:var(--fs-sm); margin-bottom:4px">Theme</label>
+          <select class="select" id="themeSelect">
+            <option value="light">Cream (light)</option>
+            <option value="dark">Cream (dark)</option>
+            <option value="dracula">Dracula</option>
+            <option value="monokai">Monokai</option>
+            <option value="nord">Nord</option>
+            <option value="solarized-dark">Solarized Dark</option>
+            <option value="solarized-light">Solarized Light</option>
+            <option value="github-light">GitHub Light</option>
+            <option value="github-dark">GitHub Dark</option>
+            <option value="tokyo-night">Tokyo Night</option>
+            <option value="one-dark">One Dark</option>
+            <option value="gruvbox">Gruvbox</option>
+          </select>
+        </div>
+        <label class="visually-hidden" aria-hidden="true">
           <input id="themeToggle" type="checkbox" />
           <span>Dark mode</span>
         </label>
@@ -932,7 +1049,13 @@
     </aside>
   </div>
 
-  <div class="status-bar" id="statusBar"></div>
+  <div class="status-bar">
+    <span id="statusBar"></span>
+    <span style="flex:1"></span>
+    <span class="status-sep">·</span>
+    <span id="stats">No file loaded</span>
+    <span class="dirty-badge" id="dirtyBadge" title="Unsaved changes"><span class="dot"></span><span id="dirtyCount">0</span></span>
+  </div>
 
   <!-- Modal (unchanged) -->
   <div id="modal" class="modal-bg" style="display:none">
