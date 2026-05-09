@@ -19,6 +19,9 @@ async function ensureDb(){
   return _db;
 }
 
+// Exposed so other modules (e.g. export.js) share the same DB connection.
+export async function getDb(){ return ensureDb(); }
+
 export async function bootProjects(){
   const db = await ensureDb();
   const activeId = await dbMetaGet(db, 'activeProjectId');

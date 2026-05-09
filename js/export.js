@@ -1,8 +1,8 @@
 // js/export.js — bundle import/export.
 import { dbAll, dbListByProject, dbPut, dbGet } from './db.js';
-import { dbOpen } from './db.js';
+import { getDb } from './projects.js';
 
-async function _db(){ return dbOpen(); }
+async function _db(){ return getDb(); }
 
 const BUNDLE_FORMAT = 'jsonlviewer-bundle';
 const SCHEMA_VERSION = 1;
