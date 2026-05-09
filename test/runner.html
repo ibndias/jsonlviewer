@@ -475,6 +475,34 @@
     await new Promise(res => { indexedDB.deleteDatabase(tname).onsuccess = res; });
   });
 
+  test('projects: bootProjects creates Untitled if none', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    fwin().__projects_setDbName(tname);
+    const active = await fwin().__projects_boot();
+    assert(active);
+    assertEq(active.name, 'Untitled');
+    assert(Array.isArray(active.fileIds));
+    await new Promise(res => { indexedDB.deleteDatabase(tname).onsuccess = res; });
+  });
+
+  test('projects: flushFile then loadActiveProjectFiles round-trip', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    fwin().__projects_setDbName(tname);
+    const proj = await fwin().__projects_boot();
+    await fwin().__projects_flushFile({
+      id: 'f1', projectId: proj.id, name: 'a.jsonl', folder: '',
+      ext: 'jsonl', sizeBytes: 5, sessionOnly: false, content: '{"a":1}\n',
+      updatedAt: 1
+    });
+    const files = await fwin().__projects_loadActiveProjectFiles();
+    assertEq(files.length, 1);
+    assertEq(files[0].name, 'a.jsonl');
+    assertEq(files[0].content, '{"a":1}\n');
+    await new Promise(res => { indexedDB.deleteDatabase(tname).onsuccess = res; });
+  });
+
   /* ---------- Run ---------- */
   async function runAll(){
     $log.replaceChildren();
