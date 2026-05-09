@@ -48,19 +48,18 @@ A lightweight, web-based JSON and JSONL (JSON Lines) file viewer with an intuiti
 
 ## Usage
 
-### Online
-Open the `index.html` file in any modern web browser - no server required!
+### Hosted
+A live build is deployed on Netlify (link in repo description).
 
 ### Local Development
+The viewer is now an ES-module app, so it must be served over HTTP (opening `index.html` directly via `file://` no longer works in modern browsers).
+
 ```bash
-# Clone the repository
 git clone https://github.com/ibndias/jsonlviewer.git
 cd jsonlviewer
-
-# Open in browser
-open index.html
-# or
-python -m http.server 8000  # then visit http://localhost:8000
+python -m http.server 8000
+# Open http://localhost:8000
+# Tests: http://localhost:8000/test/runner.html
 ```
 
 ## Examples
@@ -103,7 +102,7 @@ With the Quick Copy System:
 
 ## Technical Details
 
-- **Pure HTML/CSS/JavaScript**: No dependencies or build process required
+- **Pure HTML/CSS/JavaScript ES modules**: no dependencies, no bundler, no build step
 - **Client-side only**: All processing happens in your browser
 - **Memory efficient**: Handles large files with lazy rendering
 - **Keyboard accessible**: Full keyboard navigation support
