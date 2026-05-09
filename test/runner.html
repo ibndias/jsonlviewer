@@ -503,6 +503,30 @@
     await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
+  test('sync: own messages are filtered out', async () => {
+    await reloadFrame();
+    const events = [];
+    fwin().__sync_subscribe(msg => events.push(msg));
+    fwin().__sync_publish({type: 'test', value: 42});
+    await sleep(80);
+    assertEq(events.length, 0);
+  });
+
+  test('sync: remote messages are delivered', async () => {
+    await reloadFrame();
+    const events = [];
+    fwin().__sync_subscribe(msg => events.push(msg));
+    // Open a SECOND BroadcastChannel from the parent window — this acts as
+    // a different "tab" because the channel is shared across all windows of
+    // the same origin, and our parent has no senderId.
+    const remote = new BroadcastChannel('jsonlviewer-sync');
+    remote.postMessage({type: 'test', value: 99, senderId: 'OTHER_TAB_FAKE'});
+    await sleep(80);
+    assertEq(events.length, 1);
+    assertEq(events[0].value, 99);
+    remote.close();
+  });
+
   /* ---------- Run ---------- */
   async function runAll(){
     $log.replaceChildren();
