@@ -549,6 +549,43 @@
     await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
+  test('edit: persistActiveFile flushes after markDirty (debounced)', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    fwin().__projects_setDbName(tname);
+    await fwin().__projects_boot();
+    // Set up minimal in-memory state: one file with one item
+    const w = fwin();
+    w.state.fileName = 'edit-t.jsonl';
+    w.state.sourceShape = 'jsonl';
+    w.state.mode = 'jsonl';
+    w.state.files = [{id: 'edit_t1', folder: '', snapshot: null}];
+    w.state.activeId = 'edit_t1';
+    w.state.items = [{
+      origIdx: 0,
+      parsed: {a: 1},
+      dirty: false,
+      deleted: false,
+      excluded: false,
+      raw: '{"a":1}',
+      _origText: '{"a":1}',
+      _origJson: {a:1},
+      minified: '{"a":1}',
+      chars: 7,
+      tokens: 2
+    }];
+    // Mark dirty (which should trigger persistActiveFile -> flushFileDebounced)
+    w.__edit_markDirty(w.state.items[0]);
+    // Wait > debounce window
+    await sleep(700);
+    // Verify the file was persisted
+    const files = await w.__projects_loadActiveProjectFiles();
+    assertEq(files.length, 1);
+    assertEq(files[0].id, 'edit_t1');
+    assert(files[0].content.includes('"a"'), 'content missing key "a"');
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
+  });
+
   /* ---------- Run ---------- */
   async function runAll(){
     $log.replaceChildren();

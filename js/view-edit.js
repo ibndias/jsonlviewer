@@ -7,6 +7,7 @@ import { applyColorize } from './view-colorize.js';
 import { recomputeItemMetrics, rebuildCardInPlace } from './view-card.js';
 import { analyzeSchema, renderSidebar } from './schema.js';
 import { updateDirtyBadge, updateStats } from './view.js';
+import { persistActiveFile } from './files.js';
 
 export function markDirty(item){
   if (!item.dirty){
@@ -14,7 +15,9 @@ export function markDirty(item){
     updateDirtyBadge();
   }
   recomputeItemMetrics(item);
+  persistActiveFile();
 }
+window.__edit_markDirty = markDirty;
 
 export function applyValueAtPath(item, path, newValue){
   if (item.error) return false;
