@@ -4,6 +4,10 @@ import { state } from './state.js';
 import { pathKey, pathIdx } from './path.js';
 import { keyColor } from './view-colorize.js';
 import { promptKey } from './modal.js';
+import {
+  markDirty, removeAtPath, appendArrayItem, addObjectKey,
+  startInlineEdit, startKeyEdit, startValueEdit
+} from './view-edit.js';
 
 export const makeStringSpan = (v, path) => {
   const s = el('span','str editable');
@@ -65,7 +69,7 @@ export function makeRowDelBtn(item, path){
   del.title = 'Delete this entry';
   del.addEventListener('click', (e)=>{
     e.stopPropagation();
-    window.removeAtPath(item, path);
+    removeAtPath(item, path);
   });
   wrap.append(del);
   return wrap;
@@ -77,10 +81,10 @@ export function makeNodeAddBtn(item, path, isArr){
   b.addEventListener('click', async (e)=>{
     e.stopPropagation(); e.preventDefault();
     if (isArr){
-      window.appendArrayItem(item, path);
+      appendArrayItem(item, path);
     } else {
       const key = await promptKey();
-      if (key) window.addObjectKey(item, path, key);
+      if (key) addObjectKey(item, path, key);
     }
   });
   return b;
@@ -91,7 +95,7 @@ export function makeNodeDelBtn(item, path){
   b.title = 'Delete this entry';
   b.addEventListener('click', (e)=>{
     e.stopPropagation(); e.preventDefault();
-    window.removeAtPath(item, path);
+    removeAtPath(item, path);
   });
   return b;
 }
