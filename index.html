@@ -264,9 +264,13 @@
   }
 
   /* ---------- Panels (.side-section, .card, .modal share spacing) ---------- */
-  .panel, .side-section, .card{
+  .panel, .side-section{
     background:var(--panel); border:1px solid var(--border-soft); border-radius:var(--r-xl);
     box-shadow:var(--shadow-sm);
+  }
+  /* Cards are flatter, denser — VS Code editor surface vibe */
+  .card{
+    background:var(--panel); border:1px solid var(--border-soft); border-radius:var(--r-sm);
   }
   .side-title{
     font:600 var(--fs-xs)/1.2 var(--sans); text-transform:uppercase; letter-spacing:.08em;
@@ -367,7 +371,7 @@
   .tab-close:hover{background:var(--border-soft); color:var(--fg)}
   .tab-dirty-dot{width:6px; height:6px; border-radius:50%; background:var(--accent)}
 
-  .editor-body{flex:1; overflow:auto; padding:var(--s-5) var(--s-7)}
+  .editor-body{flex:1; overflow:auto; padding:var(--s-3) var(--s-4)}
 
   .schema-panel{
     background:var(--panel); border-left:1px solid var(--border-soft);
@@ -471,12 +475,12 @@
   .add-row{display:flex; gap:var(--s-3); align-items:center; justify-content:center; margin-bottom:var(--s-4)}
 
   /* ---------- Cards ---------- */
-  .list{display:grid; gap:var(--s-4)}
+  .list{display:flex; flex-direction:column; gap:var(--s-2)}
   .card{
     overflow:hidden; scroll-margin-top:120px;
-    transition:opacity .15s, border-color .15s, box-shadow .15s, transform .08s;
+    transition:opacity .12s, border-color .12s;
   }
-  .card:hover{box-shadow:var(--shadow-md)}
+  .card:hover{border-color:var(--muted-2)}
   .card.excluded{opacity:.45}
   .card.excluded .body{filter:grayscale(.6)}
   .card.active{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft), var(--shadow-md)}
@@ -485,12 +489,12 @@
   .card header{position:relative; background:transparent; border:0; padding:0; backdrop-filter:none}
   .card-head{
     display:flex; align-items:center; justify-content:space-between;
-    gap:var(--s-3); padding:var(--s-4) var(--s-5);
+    gap:var(--s-3); padding:var(--s-2) var(--s-3);
     border-bottom:1px solid var(--border-soft); flex-wrap:wrap;
   }
-  .ln{font:500 var(--fs-base)/1.2 var(--sans); color:var(--muted)}
-  .ln strong{color:var(--fg); font-weight:600; font-size:var(--fs-md); margin-right:2px}
-  .body{padding:var(--s-5); overflow-x:auto}
+  .ln{font:500 var(--fs-sm)/1.2 var(--sans); color:var(--muted)}
+  .ln strong{color:var(--fg); font-weight:600; font-size:var(--fs-base); margin-right:2px}
+  .body{padding:var(--s-2) var(--s-3); overflow-x:auto}
   .toolbar{display:flex; gap:var(--s-2); align-items:center; flex-wrap:wrap}
 
   /* ---------- Footer / load more ---------- */
@@ -516,9 +520,9 @@
     font:var(--fs-xs) var(--mono); color:var(--fg); margin:0 1px;
   }
 
-  /* ---------- Tree view ---------- */
-  .tree{font:var(--fs-base)/var(--lh-base) var(--mono)}
-  .kv{display:flex; align-items:flex-start; gap:var(--s-2); position:relative}
+  /* ---------- Tree view (VS Code-style: dense, monospace) ---------- */
+  .tree{font:var(--fs-sm)/1.5 var(--mono)}
+  .kv{display:flex; align-items:flex-start; gap:var(--s-1); position:relative; padding:0}
   .row-actions{display:none; gap:var(--s-1); margin-left:var(--s-3); align-items:center}
   body.edit-on .kv:hover > .row-actions,
   body.edit-on details.tree-node > summary:hover .row-actions{display:inline-flex}
@@ -550,16 +554,16 @@
   .nil{color:var(--tok-nil); font-style:italic}
   body.edit-on .editable{cursor:text}
   body.edit-on .editable:hover{outline:1px dashed var(--accent); outline-offset:2px; border-radius:3px}
-  details.tree-node{margin-left:var(--s-5)}
-  details.tree-node>summary{list-style:none; cursor:pointer; display:inline-flex; align-items:baseline; gap:var(--s-2)}
+  details.tree-node{margin-left:0}
+  details.tree-node>summary{list-style:none; cursor:pointer; display:inline-flex; align-items:baseline; gap:var(--s-1)}
   details.tree-node>summary::-webkit-details-marker{display:none}
   .caret{
-    display:inline-block; width:7px; height:7px;
+    display:inline-block; width:6px; height:6px;
     border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted);
-    transform:rotate(-45deg) translateY(-1px); transition:transform .15s; margin-right:var(--s-2);
+    transform:rotate(-45deg) translateY(-1px); transition:transform .12s; margin-right:var(--s-1);
   }
   details[open] > summary .caret{transform:rotate(45deg) translateY(-2px); border-color:var(--fg)}
-  .children{margin-left:var(--s-5); border-left:1px solid var(--border-soft); padding-left:var(--s-3); margin-top:var(--s-2)}
+  .children{margin-left:var(--s-3); border-left:1px solid var(--border-soft); padding-left:var(--s-2); margin-top:0}
   .node-head{color:var(--muted-2)}
   .node-meta{color:var(--muted-2); font-style:italic; font-size:.92em}
   details.tree-node[open] > summary .node-meta,
