@@ -1,6 +1,7 @@
 // js/schema.js
 import { el, $schemaKeys, $sideActions } from './dom.js';
 import { state, liveItems } from './state.js';
+import { renderView } from './view.js';
 
 export function analyzeSchema(){
   const m = new Map();
@@ -33,7 +34,7 @@ export function renderSidebar(){
       else state.selectedKeys.add(name);
       state.pagesShown = 1;
       renderSidebar();
-      window.renderView();
+      renderView();
     });
     frag.append(chip);
   }

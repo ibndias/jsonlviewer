@@ -9,6 +9,7 @@ import { applyColorize } from './view-colorize.js';
 import { openRawEditor } from './view-edit.js';
 import { confirmModal } from './modal.js';
 import { analyzeSchema, renderSidebar } from './schema.js';
+import { updateDirtyBadge, updateStats, updateFilterInfo, renderView, setActive, markActive } from './view.js';
 
 export function makeItem(fileIdx, prefix, rawText, parsed, error){
   const charCount = error ? rawText.length : JSON.stringify(parsed).length;
@@ -126,8 +127,8 @@ export function buildCard(item){
     item.dirty = false;
     recomputeItemMetrics(item);
     rebuildCardInPlace(item);
-    window.updateDirtyBadge();
-    window.updateStats();
+    updateDirtyBadge();
+    updateStats();
     analyzeSchema(); renderSidebar();
     showToast('Item reset');
   });
@@ -137,8 +138,8 @@ export function buildCard(item){
   excludeBtn.addEventListener('click', () => {
     item.excluded = !item.excluded;
     syncExcluded(card, item, excludeBtn);
-    window.updateStats();
-    window.updateFilterInfo();
+    updateStats();
+    updateFilterInfo();
   });
 
   const deleteBtn = el('button','mini-btn danger','Delete');
@@ -152,8 +153,8 @@ export function buildCard(item){
     if (!ok) return;
     item.deleted = true;
     analyzeSchema(); renderSidebar();
-    window.renderView();
-    window.updateDirtyBadge();
+    renderView();
+    updateDirtyBadge();
     showToast('Item deleted');
   });
 
@@ -200,7 +201,7 @@ export function buildCard(item){
   const headerWrap = el('header'); headerWrap.append(head);
   card.append(headerWrap, body);
 
-  card.addEventListener('mousedown', () => window.setActive(item.origIdx, false));
+  card.addEventListener('mousedown', () => setActive(item.origIdx, false));
 
   syncExcluded(card, item, excludeBtn);
   return card;
@@ -223,5 +224,5 @@ export function rebuildCardInPlace(item){
   const fresh = getCardEl(item);
   if (old && old.isConnected) old.replaceWith(fresh);
   if (state.colorize) applyColorize();
-  if (state.activeOrigIdx === item.origIdx) window.markActive();
+  if (state.activeOrigIdx === item.origIdx) markActive();
 }

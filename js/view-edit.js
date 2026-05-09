@@ -6,11 +6,12 @@ import { makeKeyEl } from './view-node.js';
 import { applyColorize } from './view-colorize.js';
 import { recomputeItemMetrics, rebuildCardInPlace, getCardEl } from './view-card.js';
 import { analyzeSchema, renderSidebar } from './schema.js';
+import { updateDirtyBadge, updateStats } from './view.js';
 
 export function markDirty(item){
   if (!item.dirty){
     item.dirty = true;
-    window.updateDirtyBadge();
+    updateDirtyBadge();
   }
   recomputeItemMetrics(item);
 }
@@ -69,7 +70,7 @@ export function removeAtPath(item, path){
   }
   markDirty(item);
   rebuildCardInPlace(item);
-  window.updateStats();
+  updateStats();
   analyzeSchema(); renderSidebar();
 }
 
@@ -82,7 +83,7 @@ export function appendArrayItem(item, path){
   target.push(null);
   markDirty(item);
   rebuildCardInPlace(item);
-  window.updateStats();
+  updateStats();
 }
 
 export function addObjectKey(item, path, keyName){
@@ -98,7 +99,7 @@ export function addObjectKey(item, path, keyName){
   target[keyName] = null;
   markDirty(item);
   rebuildCardInPlace(item);
-  window.updateStats();
+  updateStats();
   analyzeSchema(); renderSidebar();
 }
 
@@ -131,7 +132,7 @@ export function startKeyEdit(item, spanEl){
         const ok = applyKeyRenameAtPath(item, oldPath, newKey);
         if (!ok){ rebuildCardInPlace(item); return; }
         rebuildCardInPlace(item);
-        window.updateStats();
+        updateStats();
         analyzeSchema(); renderSidebar();
         showToast('Renamed key');
         return;
@@ -221,7 +222,7 @@ export function startValueEdit(item, spanEl){
     }
     applyValueAtPath(item, path, newVal);
     rebuildCardInPlace(item);
-    window.updateStats();
+    updateStats();
     analyzeSchema(); renderSidebar();
   };
   inp.addEventListener('keydown', (e)=>{
@@ -279,8 +280,8 @@ export function openRawEditor(item, bodyEl){
     recomputeItemMetrics(item);
     rebuildCardInPlace(item);
     analyzeSchema(); renderSidebar();
-    window.updateStats();
-    window.updateDirtyBadge();
+    updateStats();
+    updateDirtyBadge();
     showToast('Item updated');
   });
   ta.addEventListener('keydown', (e)=>{
