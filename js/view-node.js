@@ -8,6 +8,7 @@ import {
   markDirty, removeAtPath, appendArrayItem, addObjectKey,
   startInlineEdit, startKeyEdit, startValueEdit
 } from './view-edit.js';
+import { renderMarkdownToDOM } from './view-markdown.js';
 
 export const makeStringSpan = (v, path) => {
   const s = el('span','str editable');
@@ -19,7 +20,7 @@ export const makeStringSpan = (v, path) => {
   s.dataset.vtype = 'string';
   if (state.markdown){
     s.classList.add('has-md');
-    s.append(window.renderMarkdownToDOM(v));
+    s.append(renderMarkdownToDOM(v));
   } else {
     s.textContent = state.modeNewlines ? s.dataset.raw : s.dataset.escaped;
   }
@@ -171,7 +172,7 @@ export function renderStringSpan(s){
   if (s.dataset.raw == null) return;
   if (state.markdown){
     s.classList.add('has-md');
-    s.replaceChildren(window.renderMarkdownToDOM(s.dataset.raw));
+    s.replaceChildren(renderMarkdownToDOM(s.dataset.raw));
   } else {
     s.classList.remove('has-md');
     s.replaceChildren(document.createTextNode(state.modeNewlines ? s.dataset.raw : s.dataset.escaped));
