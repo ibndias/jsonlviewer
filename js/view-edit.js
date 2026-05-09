@@ -124,8 +124,11 @@ export function startKeyEdit(item, spanEl){
   const oldPath = spanEl.dataset.path;
   const inp = el('input','edit-input');
   inp.value = oldKey;
+  inp.size = Math.max(oldKey.length, 3);
   spanEl.replaceWith(inp);
   inp.focus(); inp.select();
+  // Keep width tracking content as user types.
+  inp.addEventListener('input', () => { inp.size = Math.max(inp.value.length, 3); });
   let done = false;
   const finish = (commit) => {
     if (done) return; done = true;
@@ -167,12 +170,18 @@ export function startValueEdit(item, spanEl){
     inp.value = String(oldVal);
     inp.rows = 1;
     autosize = () => {
+      // Width: longest line in chars → cols.
+      const longest = Math.max(...String(inp.value).split('\n').map(l => l.length), 8);
+      inp.cols = Math.min(longest + 1, 80);
+      // Height: scrollHeight.
       inp.style.height = 'auto';
-      inp.style.height = Math.max(inp.scrollHeight + 2, 36) + 'px';
+      inp.style.height = inp.scrollHeight + 'px';
     };
   } else if (vtype === 'number'){
     inp = el('input','edit-input');
     inp.type = 'text'; inp.value = String(oldVal);
+    inp.size = Math.max(String(oldVal).length, 4);
+    inp.addEventListener('input', () => { inp.size = Math.max(inp.value.length, 4); });
   } else if (vtype === 'boolean'){
     inp = el('select','edit-input');
     const tOpt = document.createElement('option'); tOpt.value='true'; tOpt.textContent='true';

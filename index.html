@@ -561,19 +561,26 @@
   details.tree-node[open] > summary .node-meta,
   details.tree-node[open] > summary .pun-close{display:none}
 
-  /* ---------- Inline edit input ---------- */
+  /* ---------- Inline edit input ----------
+     Goal: minimal layout shift. Match the parent span's font; no border,
+     no padding, only an outline (doesn't affect flow). */
   .edit-input{
-    font:var(--fs-base)/1.4 var(--mono); padding:var(--s-1) var(--s-2);
-    border-radius:var(--r-sm); border:1px solid var(--accent); background:var(--panel); color:var(--fg);
-    outline:none; min-width:60px; box-shadow:var(--focus-ring);
+    font:inherit;
+    padding:1px 4px; margin:-1px -4px;     /* cancel padding via negative margin */
+    border:none; border-radius:3px;
+    outline:1.5px solid var(--accent); outline-offset:0;
+    background:color-mix(in oklab, var(--accent) 8%, var(--panel));
+    color:var(--fg); min-width:40px;
+    vertical-align:baseline; box-sizing:content-box;
   }
+  input.edit-input{ display:inline-block; width:auto; }
   textarea.edit-input{
-    display:block; flex:1 1 0; min-width:0; width:100%;
-    resize:vertical; min-height:2.2em; padding:var(--s-3) var(--s-4);
-    font:var(--fs-base)/var(--lh-lg) var(--mono);
-    white-space:pre-wrap; word-break:break-word; background:var(--panel);
+    display:inline-block; width:auto; min-width:200px; max-width:100%;
+    resize:none; vertical-align:top;
+    white-space:pre-wrap; word-break:break-word;
+    overflow-y:hidden;
   }
-  select.edit-input{padding:var(--s-1) var(--s-2)}
+  select.edit-input{ padding:0 4px; margin:-1px -4px; }
 
   /* ---------- Raw editor (full-card JSON edit) ---------- */
   .raw-editor{display:flex; flex-direction:column; gap:var(--s-3)}

@@ -63,11 +63,24 @@ $addItemBtn.addEventListener('click', () => {
   newItem.origIdx = newIdx;
   newItem.dirty = true;
   state.items.push(newItem);
+  // Turn on edit mode so + / × hovers reveal immediately.
+  if (!state.editMode){
+    state.editMode = true;
+    document.body.classList.add('edit-on');
+    $editToggle.checked = true;
+  }
   analyzeSchema(); renderSidebar();
   renderView();
   setActive(newIdx, true);
   updateDirtyBadge();
-  showToast('New item appended');
+  // Auto-open the raw editor on the new item so user can type JSON.
+  requestAnimationFrame(() => {
+    const card = $list.querySelectorAll('.card')[newIdx];
+    if (!card) return;
+    const editRawBtn = [...card.querySelectorAll('.mini-btn')].find(b => b.textContent.trim() === 'Edit raw');
+    if (editRawBtn) editRawBtn.click();
+  });
+  showToast('New item — type JSON or close to keep {}');
 });
 
 /* Global expand/collapse */
