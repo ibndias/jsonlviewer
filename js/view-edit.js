@@ -5,6 +5,7 @@ import { parsePath, walkPath } from './path.js';
 import { makeKeyEl } from './view-node.js';
 import { applyColorize } from './view-colorize.js';
 import { recomputeItemMetrics, rebuildCardInPlace, getCardEl } from './view-card.js';
+import { analyzeSchema, renderSidebar } from './schema.js';
 
 export function markDirty(item){
   if (!item.dirty){
@@ -69,7 +70,7 @@ export function removeAtPath(item, path){
   markDirty(item);
   rebuildCardInPlace(item);
   window.updateStats();
-  window.analyzeSchema(); window.renderSidebar();
+  analyzeSchema(); renderSidebar();
 }
 
 export function appendArrayItem(item, path){
@@ -98,7 +99,7 @@ export function addObjectKey(item, path, keyName){
   markDirty(item);
   rebuildCardInPlace(item);
   window.updateStats();
-  window.analyzeSchema(); window.renderSidebar();
+  analyzeSchema(); renderSidebar();
 }
 
 export function activeEditing(){ return !!document.querySelector('.edit-input'); }
@@ -131,7 +132,7 @@ export function startKeyEdit(item, spanEl){
         if (!ok){ rebuildCardInPlace(item); return; }
         rebuildCardInPlace(item);
         window.updateStats();
-        window.analyzeSchema(); window.renderSidebar();
+        analyzeSchema(); renderSidebar();
         showToast('Renamed key');
         return;
       }
@@ -221,7 +222,7 @@ export function startValueEdit(item, spanEl){
     applyValueAtPath(item, path, newVal);
     rebuildCardInPlace(item);
     window.updateStats();
-    window.analyzeSchema(); window.renderSidebar();
+    analyzeSchema(); renderSidebar();
   };
   inp.addEventListener('keydown', (e)=>{
     if (e.key === 'Escape'){ e.preventDefault(); finish(false); }
@@ -277,7 +278,7 @@ export function openRawEditor(item, bodyEl){
     item.dirty = true;
     recomputeItemMetrics(item);
     rebuildCardInPlace(item);
-    window.analyzeSchema(); window.renderSidebar();
+    analyzeSchema(); renderSidebar();
     window.updateStats();
     window.updateDirtyBadge();
     showToast('Item updated');

@@ -28,6 +28,7 @@ import {
   syncExcluded, getCardEl, rebuildCardInPlace
 } from './view-card.js';
 import { tryParseFullJSON, parseAsJSON, parseAsJSONL } from './parse.js';
+import { analyzeSchema, renderSidebar } from './schema.js';
 
   /* ---- Per-file snapshot helpers ---- */
   // Save current per-file state into the active file's snapshot.
@@ -129,46 +130,6 @@ import { tryParseFullJSON, parseAsJSON, parseAsJSONL } from './parse.js';
 
   /* JSON tree rendering — functions moved to js/view-node.js */
   /* Item construction and card building — functions moved to js/view-card.js */
-
-  /* Schema sidebar */
-  function analyzeSchema(){
-    const m = new Map();
-    for (const it of liveItems()){
-      for (const k of it.topKeys){
-        m.set(k, (m.get(k) || 0) + 1);
-      }
-    }
-    state.schema = m;
-  }
-
-  function renderSidebar(){
-    const m = state.schema;
-    if (!m.size){
-      $schemaKeys.replaceChildren(el('div','side-empty', state.items.length
-        ? 'No top-level object keys (items are arrays/primitives).'
-        : 'Load a file to see keys.'));
-      $sideActions.style.display = 'none';
-      return;
-    }
-    const keys = [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-    const frag = document.createDocumentFragment();
-    for (const [name, count] of keys){
-      const chip = el('span','key-chip');
-      chip.textContent = name;
-      chip.append(el('span','count', String(count)));
-      if (state.selectedKeys.has(name)) chip.classList.add('selected');
-      chip.addEventListener('click', () => {
-        if (state.selectedKeys.has(name)) state.selectedKeys.delete(name);
-        else state.selectedKeys.add(name);
-        state.pagesShown = 1;
-        renderSidebar();
-        renderView();
-      });
-      frag.append(chip);
-    }
-    $schemaKeys.replaceChildren(frag);
-    $sideActions.style.display = state.selectedKeys.size ? '' : 'none';
-  }
 
   /* Filter / sort / paginate */
   function applyFilters(items){
@@ -895,8 +856,6 @@ import { tryParseFullJSON, parseAsJSON, parseAsJSONL } from './parse.js';
 
 // Temporary window-globals bridge — removed as host modules are extracted in
 // later tasks. See docs/superpowers/plans/2026-05-09-p1-module-refactor.md.
-window.analyzeSchema = analyzeSchema;
-window.renderSidebar = renderSidebar;
 window.renderView = renderView;
 window.updateDirtyBadge = updateDirtyBadge;
 window.updateStats = updateStats;

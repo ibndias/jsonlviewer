@@ -8,6 +8,7 @@ import { applyMarkdownMode } from './view-markdown.js';
 import { applyColorize } from './view-colorize.js';
 import { openRawEditor } from './view-edit.js';
 import { confirmModal } from './modal.js';
+import { analyzeSchema, renderSidebar } from './schema.js';
 
 export function makeItem(fileIdx, prefix, rawText, parsed, error){
   const charCount = error ? rawText.length : JSON.stringify(parsed).length;
@@ -127,7 +128,7 @@ export function buildCard(item){
     rebuildCardInPlace(item);
     window.updateDirtyBadge();
     window.updateStats();
-    window.analyzeSchema(); window.renderSidebar();
+    analyzeSchema(); renderSidebar();
     showToast('Item reset');
   });
 
@@ -150,7 +151,7 @@ export function buildCard(item){
     });
     if (!ok) return;
     item.deleted = true;
-    window.analyzeSchema(); window.renderSidebar();
+    analyzeSchema(); renderSidebar();
     window.renderView();
     window.updateDirtyBadge();
     showToast('Item deleted');
