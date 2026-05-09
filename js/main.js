@@ -941,6 +941,9 @@ window.renderSidebar = renderSidebar;
 window.renderView = renderView;
 window.updateDirtyBadge = updateDirtyBadge;
 window.updateStats = updateStats;
+window.markActive = markActive;
+window.setActive = setActive;
+window.updateFilterInfo = updateFilterInfo;
 
 /* Init */
 initTheme();
