@@ -2,6 +2,8 @@
 import './db.js';
 import './projects.js';
 import './sync.js';
+import { subscribe as _subscribe } from './sync.js';
+import { getActiveProject as _getActiveProject } from './projects.js';
 import {
   $, showToast, initTheme,
   $list, $drop, $file,
@@ -363,6 +365,25 @@ if (!testMode){
 /* Init */
 initTheme();
 const _isTestMode = /[?&]test=1\b/.test(location.search);
+
+if (!_isTestMode){
+  _subscribe(async (msg) => {
+    if (msg.type !== 'file-changed' && msg.type !== 'file-deleted') return;
+    const proj = _getActiveProject();
+    if (!proj || msg.projectId !== proj.id) return;
+    try {
+      // v1: refresh full project from IDB.
+      // Clear in-memory state first (so restoreFromCache doesn't double-load).
+      state.files = [];
+      state.activeId = null;
+      state.items = [];
+      await restoreFromCache();
+      renderView();
+      renderSidebar();
+    } catch (e) { console.warn('sync reload failed:', e); }
+  });
+}
+
 (async () => {
   if (!_isTestMode){
     try {

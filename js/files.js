@@ -10,7 +10,7 @@ import { renderView, updateStats, updateDirtyBadge } from './view.js';
 import { confirmModal } from './modal.js';
 import { exportRawFor } from './view-card.js';
 import { fmtNum } from './path.js';
-import { flushFile, flushFileDebounced, getActiveProject, loadActiveProjectFiles } from './projects.js';
+import { flushFile, flushFileDebounced, getActiveProject, loadActiveProjectFiles, deleteFile as _projectsDeleteFile } from './projects.js';
 
 /* ---- Per-file snapshot helpers ---- */
 // Save current per-file state into the active file's snapshot.
@@ -75,7 +75,7 @@ export function switchToFile(id){
                 document.createTextNode(' active — drop or click to load more files.'));
   }
 }
-export function closeFile(id){
+export async function closeFile(id){
   const idx = state.files.findIndex(x => x.id === id);
   if (idx < 0) return;
   if (state.activeId === id){
@@ -108,6 +108,11 @@ export function closeFile(id){
     state.files.splice(idx, 1);
   }
   renderFileTree();
+  try {
+    if (getActiveProject()){
+      await _projectsDeleteFile(id);
+    }
+  } catch (e) { console.warn('deleteFile failed:', e); }
 }
 
 /* Load file */

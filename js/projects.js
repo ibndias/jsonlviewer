@@ -1,5 +1,6 @@
 // js/projects.js — active project + CRUD + autosave debouncer.
 import { dbOpen, dbGet, dbPut, dbDelete, dbListByProject, dbMetaGet, dbMetaSet } from './db.js';
+import { publish } from './sync.js';
 
 const FLUSH_DEBOUNCE_MS = 500;
 
@@ -58,6 +59,7 @@ export async function flushFile(fileRow){
     _active.updatedAt = Date.now();
     await dbPut(db, 'projects', _active);
   }
+  publish({ type: 'file-changed', fileId: fileRow.id, projectId: _active.id });
 }
 
 export async function deleteFile(fileId){
@@ -66,6 +68,7 @@ export async function deleteFile(fileId){
   _active.fileIds = _active.fileIds.filter(id => id !== fileId);
   _active.updatedAt = Date.now();
   await dbPut(db, 'projects', _active);
+  publish({ type: 'file-deleted', fileId, projectId: _active.id });
 }
 
 export function flushFileDebounced(fileRow){
