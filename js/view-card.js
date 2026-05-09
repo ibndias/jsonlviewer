@@ -96,16 +96,22 @@ export function buildCard(item){
     } catch {}
   });
 
-  const expandBtn = el('button','mini-btn','Expand');
-  expandBtn.title = 'Expand all nodes in this item';
+  const expandBtn = el('button','mini-btn','Collapse');
+  expandBtn.title = 'Toggle expand/collapse all nodes in this item';
   expandBtn.addEventListener('click', () => {
-    card.querySelectorAll('details.tree-node').forEach(d => d.open = true);
+    const nodes = [...card.querySelectorAll('details.tree-node')];
+    const openCount = nodes.filter(d => d.open).length;
+    const shouldOpen = openCount < nodes.length / 2;
+    nodes.forEach(d => d.open = shouldOpen);
+    expandBtn.textContent = shouldOpen ? 'Collapse' : 'Expand';
   });
 
-  const collapseBtn = el('button','mini-btn','Collapse');
-  collapseBtn.title = 'Collapse all nodes in this item';
+  // Hidden alias for legacy palette/test compat (no UI button rendered).
+  const collapseBtn = document.createElement('button');
+  collapseBtn.style.display = 'none';
   collapseBtn.addEventListener('click', () => {
     card.querySelectorAll('details.tree-node').forEach(d => d.open = false);
+    expandBtn.textContent = 'Expand';
   });
 
   const editRawBtn = el('button','mini-btn','Edit raw');
