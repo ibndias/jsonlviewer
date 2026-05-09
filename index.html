@@ -613,6 +613,34 @@
     padding:var(--s-2) var(--s-7); font:var(--fs-sm)/var(--lh-sm) var(--sans);
     color:var(--muted); z-index:50;
   }
+
+  /* ---------- Command Palette / Quick Open ---------- */
+  .palette-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.3);
+    display:flex; justify-content:center; align-items:flex-start;
+    padding-top:10vh; z-index:300;
+  }
+  .palette-box{
+    width:min(560px, 90vw); background:var(--panel);
+    border:1px solid var(--border); border-radius:var(--r-md);
+    box-shadow:var(--shadow-lg); overflow:hidden;
+  }
+  .palette-input{
+    width:100%; padding:var(--s-4) var(--s-5);
+    border:none; outline:none; background:transparent; color:var(--fg);
+    font:var(--fs-md)/var(--lh-md) var(--sans);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .palette-list{max-height:60vh; overflow:auto}
+  .palette-row{
+    display:flex; align-items:center; gap:var(--s-3);
+    padding:var(--s-2) var(--s-5); cursor:pointer;
+    font:var(--fs-base)/var(--lh-base) var(--sans);
+  }
+  .palette-row:hover{background:var(--panel-soft)}
+  .palette-row.selected{background:var(--accent-soft); color:var(--accent)}
+  .palette-label{flex:1}
+  .palette-hint{color:var(--muted-2); font-size:var(--fs-sm)}
 </style>
 </head>
 <body>
@@ -772,6 +800,6 @@
     </div>
   </div>
 
-<script type="module" src="js/main.js?v=p3"></script>
+<script type="module" src="js/main.js?v=p4"></script>
 </body>
 </html>

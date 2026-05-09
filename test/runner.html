@@ -644,6 +644,32 @@
     await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
+  test('palette: open + filter + close', async () => {
+    await reloadFrame();
+    await sleep(50);
+    // Open palette
+    fwin().__palette_open();
+    await sleep(30);
+    assert(fwin().__palette_isOpen(), 'palette did not open');
+    // Filter
+    const all = fwin().__palette_filtered();
+    assert(all.length > 0, 'no commands in palette');
+    // Close
+    fwin().__palette_close();
+    await sleep(30);
+    assert(!fwin().__palette_isOpen(), 'palette did not close');
+  });
+
+  test('palette: Project: New command exists', async () => {
+    await reloadFrame();
+    await sleep(50);
+    fwin().__palette_open();
+    await sleep(30);
+    const labels = fwin().__palette_filtered();
+    assert(labels.some(l => l.includes('Project: New')), 'Project: New missing');
+    fwin().__palette_close();
+  });
+
   /* ---------- Run ---------- */
   async function runAll(){
     $log.replaceChildren();

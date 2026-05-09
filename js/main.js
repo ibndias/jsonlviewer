@@ -35,6 +35,7 @@ import {
 } from './files.js';
 import { bootProjects } from './projects.js';
 import { initProjectChip, initStatusBar, refreshStatusBar, refreshChip } from './projects-ui.js';
+import { openCommandPalette, openQuickOpen } from './palette.js';
 
 // Test-harness window hooks (only readable in test mode but cheap to attach):
 window.state = state;
@@ -273,6 +274,17 @@ function isTypingInField(t){
   return false;
 }
 document.addEventListener('keydown', (e) => {
+  // Command palette / quick open
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p'){
+    e.preventDefault();
+    openCommandPalette();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'p'){
+    e.preventDefault();
+    openQuickOpen();
+    return;
+  }
   if (e.key === 'Escape'){
     if (document.activeElement === $search){
       if ($search.value){
