@@ -353,12 +353,15 @@ if (!testMode){
 
 /* Init */
 initTheme();
+const _isTestMode = /[?&]test=1\b/.test(location.search);
 (async () => {
-  try {
-    await bootProjects();
-    await restoreFromCache();
-  } catch (e) {
-    console.warn('boot/restore failed:', e);
+  if (!_isTestMode){
+    try {
+      await bootProjects();
+      await restoreFromCache();
+    } catch (e) {
+      console.warn('boot/restore failed:', e);
+    }
   }
   updateStats();
   renderSidebar();
