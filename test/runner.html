@@ -624,6 +624,26 @@
     await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
+  test('projects-ui: list/create/rename/delete round-trip', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    fwin().__projects_setDbName(tname);
+    await fwin().__projects_boot();
+    let projs = await fwin().__projects_list();
+    assertEq(projs.length, 1);
+    const p = await fwin().__projects_create('Logs');
+    await fwin().__projects_switch(p.id);
+    assertEq(fwin().__projects_active().id, p.id);
+    await fwin().__projects_rename(p.id, 'Renamed');
+    projs = await fwin().__projects_list();
+    const renamed = projs.find(x => x.id === p.id);
+    assertEq(renamed.name, 'Renamed');
+    await fwin().__projects_delete(p.id);
+    projs = await fwin().__projects_list();
+    assertEq(projs.find(x => x.id === p.id), undefined);
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
+  });
+
   /* ---------- Run ---------- */
   async function runAll(){
     $log.replaceChildren();

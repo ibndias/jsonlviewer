@@ -1,5 +1,5 @@
 // js/projects.js — active project + CRUD + autosave debouncer.
-import { dbOpen, dbGet, dbPut, dbDelete, dbListByProject, dbMetaGet, dbMetaSet } from './db.js';
+import { dbOpen, dbGet, dbPut, dbDelete, dbAll, dbListByProject, dbMetaGet, dbMetaSet } from './db.js';
 import { publish } from './sync.js';
 
 const FLUSH_DEBOUNCE_MS = 500;
@@ -88,6 +88,59 @@ export async function flushFileImmediate(fileRow){
   return flushFile(fileRow);
 }
 
+export async function listProjects(){
+  const db = await ensureDb();
+  return await dbAll(db, 'projects');
+}
+
+export async function createProject(name){
+  const db = await ensureDb();
+  const proj = {
+    id: 'p_' + Math.random().toString(36).slice(2) + Date.now().toString(36),
+    name: name || 'Untitled',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    fileIds: [],
+    openTabIds: [],
+    activeTabId: null
+  };
+  await dbPut(db, 'projects', proj);
+  return proj;
+}
+
+export async function switchProject(id){
+  const db = await ensureDb();
+  const proj = await dbGet(db, 'projects', id);
+  if (!proj) throw new Error('Project not found: ' + id);
+  _active = proj;
+  await dbMetaSet(db, 'activeProjectId', id);
+  return proj;
+}
+
+export async function renameProject(id, newName){
+  const db = await ensureDb();
+  const proj = await dbGet(db, 'projects', id);
+  if (!proj) throw new Error('Project not found: ' + id);
+  proj.name = newName;
+  proj.updatedAt = Date.now();
+  await dbPut(db, 'projects', proj);
+  if (_active && _active.id === id) _active.name = newName;
+  return proj;
+}
+
+export async function deleteProject(id){
+  const db = await ensureDb();
+  // Delete all files belonging to this project
+  const files = await dbListByProject(db, id);
+  for (const f of files) await dbDelete(db, 'files', f.id);
+  await dbDelete(db, 'projects', id);
+  // If deleted active, clear and re-boot to fresh Untitled
+  if (_active && _active.id === id){
+    _active = null;
+    await dbMetaSet(db, 'activeProjectId', '');  // empty so bootProjects creates new
+  }
+}
+
 // --- Test hooks ---
 window.__projects_setDbName = (name) => {
   _dbNameOverride = name;
@@ -100,3 +153,8 @@ window.__projects_active = getActiveProject;
 window.__projects_flushFile = flushFile;
 window.__projects_deleteFile = deleteFile;
 window.__projects_loadActiveProjectFiles = loadActiveProjectFiles;
+window.__projects_list = listProjects;
+window.__projects_create = createProject;
+window.__projects_switch = switchProject;
+window.__projects_rename = renameProject;
+window.__projects_delete = deleteProject;

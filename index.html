@@ -575,6 +575,44 @@
     font:var(--fs-md)/1.5 var(--sans);
   }
   .modal-actions{display:flex; gap:var(--s-3); justify-content:flex-end}
+
+  .project-chip{
+    border:1px solid var(--border); background:var(--panel); color:var(--fg);
+    padding:var(--s-2) var(--s-3); border-radius:var(--r-md);
+    font:500 var(--fs-base)/1.2 var(--sans); cursor:pointer;
+  }
+  .project-chip:hover{background:var(--panel-soft); border-color:var(--muted-2)}
+  .project-popup{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--r-md);
+    box-shadow:var(--shadow-md); padding:var(--s-2); z-index:200;
+    min-width:240px;
+  }
+  .pp-row{display:flex; align-items:center; gap:var(--s-2); padding:var(--s-2) var(--s-3); border-radius:var(--r-sm); cursor:pointer}
+  .pp-row:hover{background:var(--panel-soft)}
+  .pp-row.active{color:var(--accent)}
+  .pp-check{width:14px; display:inline-block}
+  .pp-name{flex:1}
+  .pp-meta{color:var(--muted-2); font-size:var(--fs-sm)}
+  .pp-divider{height:1px; background:var(--border-soft); margin:var(--s-2) 0}
+  .pp-action{
+    display:block; width:100%; text-align:left; padding:var(--s-2) var(--s-3);
+    background:transparent; border:none; color:var(--fg); cursor:pointer;
+    border-radius:var(--r-sm); font:500 var(--fs-base)/1.2 var(--sans);
+  }
+  .pp-action:hover{background:var(--panel-soft)}
+  .manage-list{display:flex; flex-direction:column; gap:var(--s-2); max-height:60vh; overflow:auto}
+  .manage-row{display:flex; align-items:center; gap:var(--s-3); padding:var(--s-3); border:1px solid var(--border-soft); border-radius:var(--r-md)}
+  .manage-row.active{border-color:var(--accent); background:var(--accent-soft)}
+  .mr-name{flex:1; font-weight:500}
+  .mr-meta{color:var(--muted); font-size:var(--fs-sm)}
+  .mr-btns{display:flex; gap:var(--s-2)}
+  .modal-input{width:100%; padding:var(--s-3); border:1px solid var(--border); border-radius:var(--r-sm); margin-top:var(--s-2)}
+  .status-bar{
+    position:fixed; bottom:0; left:0; right:0;
+    background:var(--panel); border-top:1px solid var(--border-soft);
+    padding:var(--s-2) var(--s-7); font:var(--fs-sm)/var(--lh-sm) var(--sans);
+    color:var(--muted); z-index:50;
+  }
 </style>
 </head>
 <body>
@@ -584,6 +622,7 @@
         <h1><span class="accent-dot"></span>JSON / JSONL Viewer</h1>
         <span class="chip" id="stats">No file loaded</span>
         <span class="dirty-badge" id="dirtyBadge"><span class="dot"></span><span id="dirtyCount">0 modified</span></span>
+        <button class="chip project-chip" id="projectChip" title="Switch project">Untitled &#x25BE;</button>
         <div style="flex:1"></div>
         <div class="controls">
           <label class="file-btn" title="Open a .json / .jsonl / .txt / .log file">
@@ -720,6 +759,7 @@
     </aside>
   </main>
 
+  <div class="status-bar" id="statusBar"></div>
   <div id="toast" class="toast"></div>
   <div id="modal" class="modal-bg" style="display:none">
     <div class="modal" role="dialog" aria-modal="true">
@@ -732,6 +772,6 @@
     </div>
   </div>
 
-<script type="module" src="js/main.js?v=p2t6"></script>
+<script type="module" src="js/main.js?v=p3"></script>
 </body>
 </html>

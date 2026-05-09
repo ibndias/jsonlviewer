@@ -34,6 +34,7 @@ import {
   persistActiveFile as _persistActiveFileImport
 } from './files.js';
 import { bootProjects } from './projects.js';
+import { initProjectChip, initStatusBar, refreshStatusBar, refreshChip } from './projects-ui.js';
 
 // Test-harness window hooks (only readable in test mode but cheap to attach):
 window.state = state;
@@ -41,6 +42,8 @@ window.__edit_markDirty = __markDirty;
 window.markDirty = __markDirty;
 window.__files_getActiveFileRow = _getActiveFileRowImport;
 window.__files_persistActiveFile = _persistActiveFileImport;
+window.__projectsui_refreshChip = refreshChip;
+window.__projectsui_refreshStatusBar = refreshStatusBar;
 
 /* Add new item */
 $addItemBtn.addEventListener('click', () => {
@@ -392,6 +395,8 @@ if (!_isTestMode){
     } catch (e) {
       console.warn('boot/restore failed:', e);
     }
+    initProjectChip();
+    initStatusBar();
   }
   updateStats();
   renderSidebar();
