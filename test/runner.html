@@ -752,6 +752,180 @@
     await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
+  /* ---------- Dataset module tests ---------- */
+  test('dataset: detectRowFormat covers chat/sharegpt/alpaca/dpo/qa', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    assertEq(D.detectRowFormat({messages:[{role:'user',content:'hi'},{role:'assistant',content:'yo'}]}), 'openai-chat');
+    assertEq(D.detectRowFormat({conversations:[{from:'human',value:'hi'},{from:'gpt',value:'yo'}]}), 'sharegpt');
+    assertEq(D.detectRowFormat({chosen:'a',rejected:'b'}), 'preference-pair');
+    assertEq(D.detectRowFormat({instruction:'do x',output:'done'}), 'alpaca');
+    assertEq(D.detectRowFormat({prompt:'p',completion:'c'}), 'completion');
+    assertEq(D.detectRowFormat({question:'?',answer:'!'}), 'qa');
+  });
+
+  test('dataset: profileDataset reports dominant + counts', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const items = [
+      {parsed:{messages:[{role:'user',content:'a'},{role:'assistant',content:'b'}]}, error:false, deleted:false, origIdx:0},
+      {parsed:{messages:[{role:'user',content:'a'},{role:'assistant',content:'b'}]}, error:false, deleted:false, origIdx:1},
+      {parsed:{instruction:'i',output:'o'}, error:false, deleted:false, origIdx:2},
+    ];
+    const p = D.profileDataset(items);
+    assertEq(p.total, 3);
+    assertEq(p.dominant, 'openai-chat');
+  });
+
+  test('dataset: extractTurns + computeStats', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const t = D.extractTurns({messages:[{role:'user',content:'hi'},{role:'assistant',content:'yo'}]});
+    assertEq(t.length, 2);
+    assertEq(t[0].role, 'user');
+    const stats = D.computeStats([
+      {parsed:{messages:[{role:'user',content:'aaaa'},{role:'assistant',content:'bbbb'}]}, error:false, deleted:false, origIdx:0, rawText:''},
+      {parsed:{messages:[{role:'user',content:'a'},{role:'assistant',content:'b'}]}, error:false, deleted:false, origIdx:1, rawText:''},
+    ]);
+    assertEq(stats.n, 2);
+    assertEq(stats.chatRows, 2);
+    assert(stats.tokens.count === 2);
+    assert(stats.roleCount.length >= 2);
+  });
+
+  test('dataset: exactDedup groups identical rows', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const items = [
+      {origIdx:0, deleted:false, error:false, parsed:{a:1}},
+      {origIdx:1, deleted:false, error:false, parsed:{a:1}},
+      {origIdx:2, deleted:false, error:false, parsed:{a:2}},
+    ];
+    const groups = D.exactDedup(items, it => JSON.stringify(it.parsed));
+    assertEq(groups.length, 1);
+    assertEq(groups[0].length, 2);
+  });
+
+  test('dataset: simhash + hammingDist near-duplicate detection', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const a = D.simhash64('the quick brown fox jumps over the lazy dog repeated');
+    const b = D.simhash64('the quick brown fox jumps over the lazy cat repeated');
+    const c = D.simhash64('completely different text about astronomy and stars');
+    const dab = D.hammingDist64(a, b);
+    const dac = D.hammingDist64(a, c);
+    assert(dab < dac, `near-dups should be closer: dab=${dab} dac=${dac}`);
+  });
+
+  test('dataset: scanPII finds email + phone + key', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const text = 'contact alice@example.com or +1 415-555-0142 token sk-aaaaaaaaaaaaaaaaaaaaa';
+    const findings = D.scanPII(text);
+    assert(findings.some(f => f.id === 'email'), 'email');
+    assert(findings.some(f => f.id === 'phone'), 'phone');
+    assert(findings.some(f => f.id === 'apikey'), 'apikey');
+  });
+
+  test('dataset: redactJSON walks strings', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const [out, n] = D.redactJSON({user:'foo@bar.com', meta:{ip:'10.0.0.1'}});
+    assert(n >= 2);
+    assertEq(out.user, '<EMAIL>');
+    assertEq(out.meta.ip, '<IP>');
+  });
+
+  test('dataset: lintRow flags empty content + no assistant', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const r1 = D.lintRow({error:false, deleted:false, parsed:{messages:[{role:'user', content:''}]}, rawText:''});
+    assert(r1.some(i => i.code === 'empty-content'));
+    assert(r1.some(i => i.code === 'no-assistant'));
+  });
+
+  test('dataset: shareGPTToOpenAI mapping', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const out = D.shareGPTToOpenAI({conversations:[{from:'human', value:'hi'}, {from:'gpt', value:'yo'}]});
+    assertEq(out.messages.length, 2);
+    assertEq(out.messages[0].role, 'user');
+    assertEq(out.messages[1].role, 'assistant');
+    assertEq(out.conversations, undefined);
+  });
+
+  test('dataset: alpacaToOpenAI builds 2 turns', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const out = D.alpacaToOpenAI({instruction:'do x', input:'with y', output:'done'});
+    assertEq(out.messages.length, 2);
+    assert(out.messages[0].content.includes('do x'));
+    assert(out.messages[0].content.includes('with y'));
+  });
+
+  test('dataset: splitDataset deterministic + sums to total', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const items = Array.from({length:100}, (_, i) => ({origIdx:i, deleted:false}));
+    const s1 = D.splitDataset(items, [0.8,0.1,0.1], 42);
+    const s2 = D.splitDataset(items, [0.8,0.1,0.1], 42);
+    assertEq(JSON.stringify(s1), JSON.stringify(s2));
+    assertEq(s1[0].length + s1[1].length + s1[2].length, 100);
+  });
+
+  test('dataset: validateAgainstSchema catches missing required', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const errs = D.validateAgainstSchema({}, {type:'object', required:['messages']});
+    assert(errs.length === 1);
+    assert(errs[0].msg === 'required');
+  });
+
+  test('dataset: validateAgainstSchema enum + minLength', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const ok = D.validateAgainstSchema({role:'user'}, {type:'object', properties:{role:{type:'string', enum:['user','assistant']}}});
+    assertEq(ok.length, 0);
+    const bad = D.validateAgainstSchema({role:'admin'}, {type:'object', properties:{role:{type:'string', enum:['user','assistant']}}});
+    assert(bad.length >= 1);
+  });
+
+  test('dataset: leakageCheck finds exact substring overlap', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const long = 'the quick brown fox jumps over the lazy dog ' + 'the quick brown fox jumps over the lazy dog';
+    const A = [{origIdx:0, deleted:false, error:false,
+      parsed:{messages:[{role:'user',content:'q'},{role:'assistant',content:long}]}}];
+    const B = [{origIdx:0, deleted:false, error:false,
+      parsed:{messages:[{role:'user',content:'q'},{role:'assistant',content:'prefix ' + long + ' suffix'}]}}];
+    const hits = D.leakageCheck(A, B, {minLen:32});
+    assert(hits.length === 1);
+    assertEq(hits[0].kind, 'exact');
+  });
+
+  test('dataset: applyOps regex-replace edits messages', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const out = D.applyOps({messages:[{role:'user', content:'foo BAR baz'}]}, [{op:'regex-replace', pattern:'BAR', flags:'g', replacement:'qux'}]);
+    assertEq(out.messages[0].content, 'foo qux baz');
+  });
+
+  test('dataset: applyOps drop-system removes system turn', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const out = D.applyOps({messages:[{role:'system', content:'sys'},{role:'user', content:'hi'}]}, [{op:'drop-system'}]);
+    assertEq(out.messages.length, 1);
+    assertEq(out.messages[0].role, 'user');
+  });
+
+  test('dataset: diffJSON detects add/remove/change', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    const d = D.diffJSON({a:1, b:2}, {a:1, c:3});
+    assert(d.some(x => x.kind === 'remove' && x.path === '$.b'));
+    assert(d.some(x => x.kind === 'add' && x.path === '$.c'));
+  });
+
   /* ---------- Run ---------- */
   async function runAll(){
     $log.replaceChildren();

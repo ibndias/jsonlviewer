@@ -499,30 +499,58 @@ export function sample(items, n, seed = 1){
  * Leakage check
  * --------------------------------------------------------------- */
 
+function rowChunks(item){
+  // Yield comparable text fragments for an item: each turn's content separately,
+  // plus the joined rowText. Strings only.
+  const out = [];
+  if (item.error){ if (item.rawText) out.push(item.rawText); return out; }
+  const turns = extractTurns(item.parsed);
+  if (turns.length){
+    for (const t of turns) if (t.content) out.push(String(t.content));
+    return out;
+  }
+  // Non-chat: walk strings in JSON
+  const walk = (v) => {
+    if (typeof v === 'string'){ if (v) out.push(v); return; }
+    if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === 'object') for (const k of Object.keys(v)) walk(v[k]);
+  };
+  walk(item.parsed);
+  return out;
+}
+
+function norm(s){ return s.toLowerCase().replace(/\s+/g, ' ').trim(); }
+
 export function leakageCheck(itemsA, itemsB, opts = {}){
   const minLen = opts.minLen || 64;
   const nearH = opts.nearHamming ?? 4;
+  // Build chunk set from A using per-turn content.
   const chunks = new Set();
-  for (const it of itemsA){
-    if (it.deleted) continue;
-    const t = rowText(it).toLowerCase().replace(/\s+/g, ' ').trim();
-    if (t.length >= minLen) chunks.add(t);
-  }
   const simsA = [];
   for (const it of itemsA){
     if (it.deleted) continue;
+    for (const c of rowChunks(it)){
+      const n = norm(c);
+      if (n.length >= minLen) chunks.add(n);
+    }
     const t = rowText(it);
     if (t.length >= 16) simsA.push({ origIdx: it.origIdx, sig: simhash64(t) });
   }
   const hits = [];
   for (const it of itemsB){
     if (it.deleted) continue;
-    const t = rowText(it).toLowerCase().replace(/\s+/g, ' ').trim();
     let exact = false;
-    for (const c of chunks){
-      if (t.includes(c) || c.includes(t)){ exact = true; break; }
+    for (const cb of rowChunks(it)){
+      const nb = norm(cb);
+      if (nb.length < 8) continue;
+      for (const c of chunks){
+        if (nb.includes(c) || c.includes(nb)){ exact = true; break; }
+      }
+      if (exact) break;
     }
     if (exact){ hits.push({ origIdx: it.origIdx, kind:'exact' }); continue; }
+    const t = rowText(it);
+    if (t.length < 16) continue;
     const sig = simhash64(t);
     for (const a of simsA){
       if (hammingDist64(sig, a.sig) <= nearH){

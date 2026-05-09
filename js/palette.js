@@ -197,6 +197,21 @@ function buildCommandList(){
     w.__export_download(bundle, `jsonlviewer-all-${new Date().toISOString().slice(0,10)}.json`);
     showToast('Exported all');
   }});
+  // Dataset commands
+  const dsui = w.__dataset_ui;
+  if (dsui){
+    cmds.push({label: 'Dataset: Format profile + stats', action: () => dsui.openFormatProfile()});
+    cmds.push({label: 'Dataset: Lint', action: () => dsui.openLint()});
+    cmds.push({label: 'Dataset: JSON Schema validate', action: () => dsui.openSchemaValidate()});
+    cmds.push({label: 'Dataset: Find duplicates', action: () => dsui.openDedup()});
+    cmds.push({label: 'Dataset: PII scrub', action: () => dsui.openPIIScrub()});
+    cmds.push({label: 'Dataset: Bulk transform', action: () => dsui.openBulkTransform()});
+    cmds.push({label: 'Dataset: Tagging + review', action: () => dsui.openTagging()});
+    cmds.push({label: 'Dataset: Sample / split', action: () => dsui.openSplit()});
+    cmds.push({label: 'Dataset: Format convert', action: () => dsui.openConvert()});
+    cmds.push({label: 'Dataset: Leakage check', action: () => dsui.openLeakage()});
+    cmds.push({label: 'Dataset: Diff active row', action: () => dsui.openDiffActive()});
+  }
   cmds.push({label: 'Project: Import Bundle…', action: () => {
     const inp = document.createElement('input');
     inp.type = 'file';

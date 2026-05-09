@@ -54,6 +54,8 @@ export function initShell(){
   // Initial paint
   refreshProjectsPanel();
   renderTabStrip();
+  // Render Dataset panel (lazy import to avoid circular)
+  try { window.__dataset_ui?.renderDatasetPanel(); } catch {}
 
   // Schema icon reflects state
   const schemaBtn = document.querySelector('.act-btn[data-panel="schema"]');
@@ -70,6 +72,7 @@ function switchPanel(name){
     p.classList.toggle('active', p.dataset.panel === name);
   });
   if (name === 'projects') refreshProjectsPanel();
+  if (name === 'dataset') try { window.__dataset_ui?.renderDatasetPanel(); } catch {}
 }
 
 export async function refreshProjectsPanel(){

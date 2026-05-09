@@ -211,6 +211,8 @@ export function buildCard(item){
   card.addEventListener('mousedown', () => setActive(item.origIdx, false));
 
   syncExcluded(card, item, excludeBtn);
+  // Render any pre-existing review/tag badges
+  try { window.__dataset_ui?.updateCardReviewUI(item); } catch {}
   return card;
 }
 

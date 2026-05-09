@@ -38,6 +38,11 @@ import { bootProjects } from './projects.js';
 import { initProjectChip, initStatusBar, refreshStatusBar, refreshChip, openSettingsModal } from './projects-ui.js';
 import { openCommandPalette, openQuickOpen } from './palette.js';
 import { initShell, renderTabStrip, refreshProjectsPanel } from './shell.js';
+import './dataset.js';
+import {
+  renderDatasetPanel, setRowReview, toggleRowTag, updateCardReviewUI,
+  openTagging, openDiffActive
+} from './dataset-ui.js';
 
 // Test-harness window hooks (only readable in test mode but cheap to attach):
 window.state = state;
@@ -408,6 +413,33 @@ document.addEventListener('keydown', (e) => {
         updateDirtyBadge();
         showToast('Item deleted');
       });
+      break;
+    }
+    case 'a': {
+      // Review approve
+      e.preventDefault();
+      const it = state.items[state.activeOrigIdx];
+      if (it){ setRowReview(it, it.review === 'approve' ? null : 'approve'); renderDatasetPanel(); showToast(it.review === 'approve' ? 'Approved' : 'Cleared review'); }
+      break;
+    }
+    case 'r': {
+      // Review reject
+      e.preventDefault();
+      const it = state.items[state.activeOrigIdx];
+      if (it){ setRowReview(it, it.review === 'reject' ? null : 'reject'); renderDatasetPanel(); showToast(it.review === 'reject' ? 'Rejected' : 'Cleared review'); }
+      break;
+    }
+    case 't': {
+      // Mark "todo" review
+      e.preventDefault();
+      const it = state.items[state.activeOrigIdx];
+      if (it){ setRowReview(it, it.review === 'todo' ? null : 'todo'); renderDatasetPanel(); showToast(it.review === 'todo' ? 'Marked todo' : 'Cleared review'); }
+      break;
+    }
+    case 'd': {
+      // Diff active row
+      e.preventDefault();
+      openDiffActive();
       break;
     }
   }
