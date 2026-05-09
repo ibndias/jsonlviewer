@@ -27,6 +27,7 @@ import {
   makeItem, recomputeItemMetrics, exportRawFor, buildCard,
   syncExcluded, getCardEl, rebuildCardInPlace
 } from './view-card.js';
+import { tryParseFullJSON, parseAsJSON, parseAsJSONL } from './parse.js';
 
   /* ---- Per-file snapshot helpers ---- */
   // Save current per-file state into the active file's snapshot.
@@ -314,48 +315,6 @@ import {
     }
     if (state.pagesShown !== prevPages) renderView();
     setActive(view[target].origIdx, true);
-  }
-
-  /* Parsing */
-  function tryParseFullJSON(text){
-    try { return { ok:true, value: JSON.parse(text) }; }
-    catch (e){ return { ok:false, error: e }; }
-  }
-
-  function parseAsJSON(value, originalText){
-    state.mode = 'json';
-    const items = [];
-    if (Array.isArray(value)){
-      state.sourceShape = 'array';
-      value.forEach((item, i) => {
-        let raw;
-        try { raw = JSON.stringify(item); } catch { raw = ''; }
-        items.push(makeItem(i, 'Item', raw, item, false));
-      });
-    } else {
-      state.sourceShape = 'single';
-      let raw;
-      try { raw = JSON.stringify(value); } catch { raw = originalText; }
-      items.push(makeItem(0, 'Item', raw, value, false));
-    }
-    return items;
-  }
-
-  function parseAsJSONL(text){
-    state.mode = 'jsonl';
-    state.sourceShape = 'jsonl';
-    const items = [];
-    const lines = text.split(/\r?\n/);
-    lines.forEach((line, i) => {
-      if (line.trim() === '') return;
-      try {
-        const parsed = JSON.parse(line);
-        items.push(makeItem(i, 'Line', line, parsed, false));
-      } catch {
-        items.push(makeItem(i, 'Line', line, null, true));
-      }
-    });
-    return items;
   }
 
   /* Load file */
