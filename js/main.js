@@ -1,4 +1,5 @@
 // js/main.js — bootstrap; modules extracted incrementally.
+import './db.js';
 import {
   $, showToast, initTheme,
   $list, $drop, $file,

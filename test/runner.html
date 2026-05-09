@@ -437,6 +437,44 @@
     assert(sum.parentElement.open !== before, 'summary did not toggle');
   });
 
+  test('db: open creates schema v1 with three stores', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    const db = await fwin().__db_open(tname);
+    const stores = [...db.objectStoreNames].sort();
+    assertEq(JSON.stringify(stores), JSON.stringify(['files', 'meta', 'projects']));
+    // Verify byProject index on files
+    const tx = db.transaction('files', 'readonly');
+    const idxNames = [...tx.objectStore('files').indexNames];
+    assert(idxNames.includes('byProject'), 'byProject index missing');
+    db.close();
+    await new Promise((res) => { indexedDB.deleteDatabase(tname).onsuccess = res; });
+  });
+
+  test('db: put + get round-trip on projects store', async () => {
+    const tname = 'jsonlviewer-t-' + Date.now();
+    const db = await fwin().__db_open(tname);
+    const proj = {id:'p1', name:'X', createdAt:1, updatedAt:1, fileIds:[], openTabIds:[], activeTabId:null};
+    await fwin().__db_put(db, 'projects', proj);
+    const got = await fwin().__db_get(db, 'projects', 'p1');
+    assertEq(got.id, 'p1');
+    assertEq(got.name, 'X');
+    db.close();
+    await new Promise(res => { indexedDB.deleteDatabase(tname).onsuccess = res; });
+  });
+
+  test('db: byProject index lists files of a project', async () => {
+    const tname = 'jsonlviewer-t-' + Date.now();
+    const db = await fwin().__db_open(tname);
+    await fwin().__db_put(db, 'files', {id:'f1', projectId:'p1', name:'a.json', folder:'', ext:'json', sizeBytes:1, sessionOnly:false, content:'{}', updatedAt:1});
+    await fwin().__db_put(db, 'files', {id:'f2', projectId:'p1', name:'b.json', folder:'', ext:'json', sizeBytes:1, sessionOnly:false, content:'{}', updatedAt:1});
+    await fwin().__db_put(db, 'files', {id:'f3', projectId:'p2', name:'c.json', folder:'', ext:'json', sizeBytes:1, sessionOnly:false, content:'{}', updatedAt:1});
+    const ours = await fwin().__db_listByProject(db, 'p1');
+    assertEq(ours.length, 2);
+    db.close();
+    await new Promise(res => { indexedDB.deleteDatabase(tname).onsuccess = res; });
+  });
+
   /* ---------- Run ---------- */
   async function runAll(){
     $log.replaceChildren();
