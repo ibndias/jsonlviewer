@@ -27,3 +27,6 @@ let _fileIdCounter = 0;
 export const newFileId = () => 'f' + (++_fileIdCounter);
 
 export const liveItems = () => state.items.filter(it => !it.deleted);
+
+// Expose state on window for browser test harness.
+window.state = state;
