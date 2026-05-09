@@ -2,7 +2,8 @@
 import { el, $, $list } from './dom.js';
 import { state } from './state.js';
 import { switchToFile } from './files.js';
-import { renderView, renderSidebar } from './view.js';
+import { renderView } from './view.js';
+import { renderSidebar } from './schema.js';
 import { showToast } from './dom.js';
 
 let _overlayEl = null;
