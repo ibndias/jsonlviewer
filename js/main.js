@@ -15,7 +15,7 @@ import { fmtNum } from './path.js';
 import { state } from './state.js';
 import { applyColorize } from './view-colorize.js';
 import { applyNewlineMode } from './view-node.js';
-import { activeEditing, startInlineEdit } from './view-edit.js';
+import { activeEditing, startInlineEdit, markDirty as __markDirty } from './view-edit.js';
 import { applyMarkdownMode } from './view-markdown.js';
 import {
   makeItem, exportRawFor, syncExcluded
@@ -30,6 +30,11 @@ import {
   saveFile, onLengthChange, handleDrop, restoreFromCache
 } from './files.js';
 import { bootProjects } from './projects.js';
+
+// Test-harness window hooks (only readable in test mode but cheap to attach):
+window.state = state;
+window.__edit_markDirty = __markDirty;
+window.markDirty = __markDirty;
 
 /* Add new item */
 $addItemBtn.addEventListener('click', () => {
