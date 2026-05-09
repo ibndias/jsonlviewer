@@ -79,6 +79,19 @@
        -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale}
   .muted{color:var(--muted)}
 
+  /* ---------- Scrollbars (themed, thin) ---------- */
+  *{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{
+    background:var(--border); border-radius:5px;
+    border:2px solid transparent; background-clip:content-box;
+    transition:background .12s;
+  }
+  ::-webkit-scrollbar-thumb:hover{ background:var(--muted-2); background-clip:content-box; }
+  ::-webkit-scrollbar-corner{ background:transparent; }
+  :root[data-theme="dark"] *{ scrollbar-color:var(--border) transparent; }
+
   /* ============================================================
      Component recipes (everything below references tokens above).
      Goal: one consistent visual system across all controls.
