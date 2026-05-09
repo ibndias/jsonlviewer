@@ -4,11 +4,7 @@ import { state, liveItems } from './state.js';
 import { fmtNum, estimateTokens } from './path.js';
 import { getCardEl } from './view-card.js';
 import { applyColorize } from './view-colorize.js';
-
-// Hook for updateDirtyBadge to call renderFileTree (set by main.js to avoid
-// circular imports, since renderFileTree lives in main.js for now).
-let _onDirtyBadge = null;
-export function setDirtyBadgeHook(fn){ _onDirtyBadge = fn; }
+import { renderFileTree } from './files.js';
 
 export function applyFilters(items){
   const q = state.searchQuery.toLowerCase();
@@ -118,7 +114,7 @@ export function updateDirtyBadge(){
     $dirtyBadge.classList.remove('show');
   }
   // Reflect dirty state on the file-tree row.
-  if (_onDirtyBadge) _onDirtyBadge();
+  renderFileTree();
 }
 
 /* Active card / keyboard nav */

@@ -30,273 +30,13 @@ import { tryParseFullJSON, parseAsJSON, parseAsJSONL } from './parse.js';
 import { analyzeSchema, renderSidebar } from './schema.js';
 import {
   renderView, updateFilterInfo, updateStats, updateDirtyBadge,
-  setActive, jumpRelative, toggleActiveTree,
-  setDirtyBadgeHook
+  setActive, jumpRelative, toggleActiveTree
 } from './view.js';
-
-  /* ---- Per-file snapshot helpers ---- */
-  // Save current per-file state into the active file's snapshot.
-  function snapshotCurrent(){
-    if (!state.activeId) return;
-    const f = state.files.find(x => x.id === state.activeId);
-    if (!f) return;
-    f.snapshot = {
-      fileName: state.fileName,
-      mode: state.mode,
-      sourceShape: state.sourceShape,
-      items: state.items,
-      schema: state.schema,
-      selectedKeys: new Set(state.selectedKeys),
-      searchQuery: state.searchQuery,
-      minTokens: state.minTokens,
-      maxTokens: state.maxTokens,
-      sortMode: state.sortMode,
-      pagesShown: state.pagesShown,
-      viewItems: state.viewItems,
-      activeOrigIdx: state.activeOrigIdx,
-    };
-  }
-  function applyFromFile(f){
-    const s = f.snapshot;
-    if (!s) return;
-    state.fileName = s.fileName;
-    state.mode = s.mode;
-    state.sourceShape = s.sourceShape;
-    state.items = s.items;
-    state.schema = s.schema;
-    state.selectedKeys = new Set(s.selectedKeys);
-    state.searchQuery = s.searchQuery;
-    state.minTokens = s.minTokens;
-    state.maxTokens = s.maxTokens;
-    state.sortMode = s.sortMode;
-    state.pagesShown = s.pagesShown;
-    state.viewItems = s.viewItems;
-    state.activeOrigIdx = s.activeOrigIdx;
-    state.activeId = f.id;
-    $search.value = state.searchQuery || '';
-    $minTokens.value = state.minTokens != null ? state.minTokens : '';
-    $maxTokens.value = state.maxTokens != null ? state.maxTokens : '';
-    $sortSel.value = state.sortMode;
-  }
-  function switchToFile(id){
-    if (!id || state.activeId === id) return;
-    snapshotCurrent();
-    const f = state.files.find(x => x.id === id);
-    if (!f) return;
-    applyFromFile(f);
-    renderFileTree();
-    analyzeSchema();
-    renderSidebar();
-    renderView();
-    // Compact drop banner reflects the active file.
-    if ($drop && state.fileName){
-      $drop.classList.add('compact');
-      const main = $drop.firstElementChild;
-      main.replaceChildren();
-      main.append(el('strong', null, state.fileName),
-                  document.createTextNode(' active — drop or click to load more files.'));
-    }
-  }
-  function closeFile(id){
-    const idx = state.files.findIndex(x => x.id === id);
-    if (idx < 0) return;
-    if (state.activeId === id){
-      // Wipe current state; if other files exist, switch to next.
-      const next = state.files[idx + 1] || state.files[idx - 1] || null;
-      state.files.splice(idx, 1);
-      if (next){
-        state.activeId = null;
-        applyFromFile(next);
-        analyzeSchema(); renderSidebar(); renderView();
-      } else {
-        state.activeId = null;
-        resetView();
-        state.fileName = '';
-        $drop.classList.remove('compact');
-        const main = $drop.firstElementChild;
-        main.replaceChildren();
-        const s = el('strong', null, 'Drag & drop');
-        main.append(s,
-          document.createTextNode(' a '),
-          el('code', null, '.json'),
-          document.createTextNode(' or '),
-          el('code', null, '.jsonl'),
-          document.createTextNode(' file here, or click '),
-          el('em', null, 'Open'),
-          document.createTextNode('.'));
-        analyzeSchema(); renderSidebar(); renderView(); updateStats();
-      }
-    } else {
-      state.files.splice(idx, 1);
-    }
-    renderFileTree();
-  }
-
-  /* JSON tree rendering — functions moved to js/view-node.js */
-  /* Item construction and card building — functions moved to js/view-card.js */
-
-
-  /* Load file */
-  function resetView(){
-    state.items = [];
-    state.schema = new Map();
-    state.selectedKeys = new Set();
-    state.viewItems = [];
-    state.pagesShown = 1;
-    state.activeOrigIdx = -1;
-    state.searchQuery = '';
-    state.minTokens = null;
-    state.maxTokens = null;
-    state.sortMode = 'default';
-    $search.value = '';
-    $minTokens.value = '';
-    $maxTokens.value = '';
-    $sortSel.value = 'default';
-    $list.replaceChildren();
-    $loadMore.replaceChildren();
-    updateDirtyBadge();
-  }
-
-  // Parse a single File into the current state slot. Used by both initial
-  // load (no prior file) and append-as-new-file (multi-file mode).
-  async function _parseFileIntoState(file, folder=''){
-    resetView();
-    state.fileName = file.name;
-    updateStats();
-
-    const text = await file.text();
-    const lower = (file.name || '').toLowerCase();
-
-    let items;
-    if (lower.endsWith('.json')) {
-      const full = tryParseFullJSON(text);
-      items = full.ok ? parseAsJSON(full.value, text) : parseAsJSONL(text);
-    } else {
-      const full = tryParseFullJSON(text);
-      if (full.ok && (typeof full.value !== 'string')) items = parseAsJSON(full.value, text);
-      else items = parseAsJSONL(text);
-    }
-    items.forEach((it, i) => { it.origIdx = i; });
-    state.items = items;
-  }
-
-  async function loadFile(file, opts={}){
-    const folder = opts.folder || '';
-    // If we have an active file with edits, snapshot it before parking;
-    // we now ALWAYS open additional files as new tabs (no overwrite).
-    snapshotCurrent();
-    await _parseFileIntoState(file, folder);
-
-    // Register new file slot.
-    const id = newFileId();
-    const slot = {id, folder, snapshot:null};
-    state.files.push(slot);
-    state.activeId = id;
-    snapshotCurrent();
-
-    analyzeSchema();
-    renderSidebar();
-    renderView();
-    renderFileTree();
-
-    $drop.classList.add('compact');
-    const main = $drop.firstElementChild;
-    main.replaceChildren();
-    main.append(el('strong', null, file.name),
-                document.createTextNode(' active — drop more, click ‹+ Files› / ‹+ Folder›, or pick another from the left.'));
-  }
-
-  async function loadFiles(fileList, opts={}){
-    if (!fileList || !fileList.length) return;
-    // For folder upload, use webkitRelativePath as folder source.
-    const filtered = [...fileList].filter(f => /\.(json|jsonl|txt|log)$/i.test(f.name));
-    if (!filtered.length){ showToast('No .json/.jsonl files found', 'err'); return; }
-    for (const f of filtered){
-      const rel = f.webkitRelativePath || '';
-      const folder = rel ? rel.split('/').slice(0,-1).join('/') : (opts.folder || '');
-      await loadFile(f, {folder});
-    }
-    showToast(`Loaded ${filtered.length} file${filtered.length===1?'':'s'}`);
-  }
-
-  /* ---------- File tree render ---------- */
-  function renderFileTree(){
-    const tree = $('fileTree');
-    if (!tree) return;
-    if (!state.files.length){
-      tree.replaceChildren(el('div','file-tree-empty','No files open. Drop here or use the buttons below.'));
-      return;
-    }
-    // Group by folder path
-    const groups = new Map(); // folderPath -> [slots]
-    for (const f of state.files){
-      const k = f.folder || '';
-      if (!groups.has(k)) groups.set(k, []);
-      groups.get(k).push(f);
-    }
-    const frag = document.createDocumentFragment();
-    // Root files first (no folder)
-    if (groups.has('')){
-      for (const slot of groups.get('')) frag.append(buildFileRow(slot));
-      groups.delete('');
-    }
-    const folderNames = [...groups.keys()].sort();
-    for (const fname of folderNames){
-      frag.append(buildFolderRow(fname, groups.get(fname)));
-    }
-    tree.replaceChildren(frag);
-  }
-  function buildFileRow(slot){
-    const live = (slot.id === state.activeId);
-    const s = live ? state : (slot.snapshot || {});
-    const row = el('div','file-row');
-    row.dataset.id = slot.id;
-    if (live) row.classList.add('active');
-    const items = s.items || [];
-    const dirty = items.some(it => it.dirty || it.deleted);
-    if (dirty) row.classList.add('dirty');
-    const ext = (s.fileName || '').toLowerCase().endsWith('.jsonl') ? 'JSONL' : 'JSON';
-    row.append(
-      el('span','file-icon', ext),
-      el('span','file-name', s.fileName || '(untitled)'),
-      el('span','file-meta', String(items.filter(it=>!it.deleted).length))
-    );
-    const close = el('button','file-close','×');
-    close.title = 'Close file';
-    close.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      if (dirty){
-        const ok = await confirmModal({
-          title:'Close file with unsaved edits?',
-          body:'Edits in “' + (s.fileName || 'this file') + '” will be lost.',
-          okLabel:'Close', dangerous:true
-        });
-        if (!ok) return;
-      }
-      closeFile(slot.id);
-    });
-    row.append(close);
-    row.addEventListener('click', () => switchToFile(slot.id));
-    return row;
-  }
-  function buildFolderRow(name, slots){
-    const wrap = document.createDocumentFragment();
-    const head = el('div','folder-row open');
-    head.append(
-      el('span','folder-caret'),
-      el('span','folder-icon','📁'),
-      el('span','file-name', name + '/'),
-      el('span','file-meta', String(slots.length))
-    );
-    const kids = el('div','folder-children');
-    for (const slot of slots) kids.append(buildFileRow(slot));
-    head.addEventListener('click', () => {
-      const isOpen = head.classList.toggle('open') === false ? false : head.classList.contains('open');
-      kids.classList.toggle('collapsed', !isOpen);
-    });
-    wrap.append(head, kids);
-    return wrap;
-  }
+import {
+  snapshotCurrent, applyFromFile, switchToFile, closeFile,
+  resetView, loadFile, loadFiles, renderFileTree,
+  saveFile, readNumOrNull, onLengthChange, handleDrop
+} from './files.js';
 
   /* Add new item */
   $addItemBtn.addEventListener('click', () => {
@@ -347,39 +87,6 @@ import {
 
   /* Save full file (preserves source shape) */
   $saveBtn.addEventListener('click', saveFile);
-  function saveFile(){
-    const live = state.items.filter(it => !it.deleted);
-    if (!live.length){ showToast('Nothing to save'); return; }
-    let text, ext, mime;
-    if (state.sourceShape === 'array'){
-      const arr = live.map(it => it.error ? null : it.parsed);
-      text = JSON.stringify(arr, null, 2);
-      ext = 'json'; mime = 'application/json';
-    } else if (state.sourceShape === 'single'){
-      const v = live[0].error ? null : live[0].parsed;
-      text = JSON.stringify(v, null, 2);
-      ext = 'json'; mime = 'application/json';
-    } else {
-      const lines = live.map(it => exportRawFor(it)).filter(Boolean);
-      text = lines.join('\n') + '\n';
-      ext = 'jsonl'; mime = 'application/jsonl';
-    }
-    const blob = new Blob([text], {type:mime});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const base = (state.fileName || 'export').replace(/\.(json|jsonl|txt|log)$/i, '');
-    a.href = url;
-    a.download = `${base}-edited.${ext}`;
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    for (const it of state.items) it.dirty = false;
-    state.items = state.items.filter(it => !it.deleted);
-    state.items.forEach((it, i)=>{ it.origIdx = i; it.fileIdx = i; it._cardEl = null; it.originalParsed = it.error ? null : structuredClone(it.parsed); });
-    analyzeSchema(); renderSidebar();
-    renderView();
-    updateDirtyBadge();
-    showToast(`Saved ${fmtNum(live.length)} item${live.length===1?'':'s'}`);
-  }
 
   /* Sort / length filter */
   $sortSel.addEventListener('change', () => {
@@ -387,17 +94,6 @@ import {
     state.pagesShown = 1;
     renderView();
   });
-  function readNumOrNull(v){
-    if (v === '' || v == null) return null;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  }
-  function onLengthChange(){
-    state.minTokens = readNumOrNull($minTokens.value);
-    state.maxTokens = readNumOrNull($maxTokens.value);
-    state.pagesShown = 1;
-    renderView();
-  }
   let lenTimer;
   [$minTokens, $maxTokens].forEach(inp => {
     inp.addEventListener('input', () => {
@@ -431,50 +127,6 @@ import {
       $drop.classList.remove('active');
     });
   });
-  async function handleDrop(e){
-    const dt = e.dataTransfer;
-    if (!dt) return;
-    // Try entry API for folder support
-    const entries = [];
-    if (dt.items && dt.items.length){
-      for (const it of dt.items){
-        if (typeof it.webkitGetAsEntry === 'function'){
-          const ent = it.webkitGetAsEntry();
-          if (ent) entries.push(ent);
-        }
-      }
-    }
-    if (entries.length){
-      const collected = [];
-      for (const ent of entries){
-        await collectEntry(ent, '', collected);
-      }
-      if (collected.length){ await loadFiles(collected); return; }
-    }
-    // Fallback: plain files list
-    if (dt.files && dt.files.length) await loadFiles(dt.files);
-  }
-  function collectEntry(entry, folderPath, out){
-    return new Promise(resolve => {
-      if (entry.isFile){
-        entry.file(file => {
-          // Decorate webkitRelativePath via folderPath
-          if (folderPath) try { Object.defineProperty(file, 'webkitRelativePath', {value: folderPath + '/' + file.name}); } catch {}
-          out.push(file);
-          resolve();
-        }, () => resolve());
-      } else if (entry.isDirectory){
-        const reader = entry.createReader();
-        const next = folderPath ? folderPath + '/' + entry.name : entry.name;
-        const readBatch = () => reader.readEntries(async (batch) => {
-          if (!batch.length){ resolve(); return; }
-          for (const child of batch) await collectEntry(child, next, out);
-          readBatch();
-        }, () => resolve());
-        readBatch();
-      } else { resolve(); }
-    });
-  }
 
   /* Header Open: opens the multi-file picker.  */
   const $filesInput = $('filesInput');
@@ -707,7 +359,6 @@ import {
   }
 
 /* Init */
-setDirtyBadgeHook(renderFileTree);
 initTheme();
 updateStats();
 renderSidebar();
