@@ -1373,6 +1373,10 @@ window.renderView = renderView;
 window.applyMarkdownMode = applyMarkdownMode;
 window.rebuildCardInPlace = rebuildCardInPlace;
 window.renderMarkdownToDOM = renderMarkdownToDOM;
+window.updateDirtyBadge = updateDirtyBadge;
+window.updateStats = updateStats;
+window.getCardEl = getCardEl;
+window.recomputeItemMetrics = recomputeItemMetrics;
 
 /* Init */
 initTheme();
