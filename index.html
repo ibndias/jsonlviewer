@@ -79,6 +79,8 @@
        -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale}
   .muted{color:var(--muted)}
 
+  .visually-hidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+
   /* ---------- Scrollbars (themed, thin) ---------- */
   *{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
   ::-webkit-scrollbar{ width:10px; height:10px; }
@@ -340,17 +342,19 @@
 
   .editor{display:flex; flex-direction:column; overflow:hidden; background:var(--bg)}
   .tab-strip{
-    display:flex; align-items:stretch;
+    display:flex; align-items:stretch; flex-shrink:0;
     background:var(--panel-soft); border-bottom:1px solid var(--border-soft);
-    min-height:34px; overflow-x:auto;
+    height:34px; overflow-x:auto; overflow-y:hidden;
   }
+  .tab-strip::-webkit-scrollbar{ height:0; }
+  .tab-strip{ scrollbar-width:none; }
   .tab-strip:empty::before{content:"No file open"; color:var(--muted-2); font-size:var(--fs-sm); padding:var(--s-2) var(--s-4)}
   .tab-item{
-    display:flex; align-items:center; gap:var(--s-2);
-    padding:var(--s-2) var(--s-3);
+    display:flex; align-items:center; gap:var(--s-2); flex-shrink:0;
+    padding:0 var(--s-3);
     border-right:1px solid var(--border-soft);
     background:var(--panel-soft); color:var(--muted);
-    cursor:pointer; font:var(--fs-sm)/1.2 var(--sans);
+    cursor:pointer; font:var(--fs-sm)/1 var(--sans);
     white-space:nowrap;
   }
   .tab-item:hover{background:var(--panel)}
@@ -846,9 +850,10 @@
             </div>
           </div>
           <div class="control-group" style="flex-direction:row; gap:6px">
-            <button class="mini-btn" id="expandAll" title="Expand all (E)">Expand all</button>
-            <button class="mini-btn" id="collapseAll" title="Collapse all (C)">Collapse all</button>
+            <button class="mini-btn" id="treeToggle" title="Expand / collapse all (E / C)">Expand all</button>
           </div>
+          <button class="visually-hidden" id="expandAll" aria-hidden="true" tabindex="-1"></button>
+          <button class="visually-hidden" id="collapseAll" aria-hidden="true" tabindex="-1"></button>
         </div>
       </div>
 

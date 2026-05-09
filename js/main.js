@@ -84,12 +84,23 @@ $addItemBtn.addEventListener('click', () => {
 });
 
 /* Global expand/collapse */
-$expandAll.addEventListener('click', () => {
-  $list.querySelectorAll('details.tree-node').forEach(d => d.open = true);
-});
-$collapseAll.addEventListener('click', () => {
-  $list.querySelectorAll('details.tree-node').forEach(d => d.open = false);
-});
+function setAllTreeOpen(open){
+  $list.querySelectorAll('details.tree-node').forEach(d => d.open = open);
+  const t = $('treeToggle');
+  if (t) t.textContent = open ? 'Collapse all' : 'Expand all';
+}
+$expandAll.addEventListener('click', () => setAllTreeOpen(true));
+$collapseAll.addEventListener('click', () => setAllTreeOpen(false));
+const $treeToggle = $('treeToggle');
+if ($treeToggle){
+  $treeToggle.addEventListener('click', () => {
+    // If most are open, collapse; else expand.
+    const nodes = [...$list.querySelectorAll('details.tree-node')];
+    const openCount = nodes.filter(d => d.open).length;
+    const shouldOpen = openCount < nodes.length / 2;
+    setAllTreeOpen(shouldOpen);
+  });
+}
 
 /* Export visible+included items as JSONL */
 $exportBtn.addEventListener('click', () => {
