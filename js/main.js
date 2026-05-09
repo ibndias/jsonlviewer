@@ -27,7 +27,9 @@ import {
 } from './view.js';
 import {
   loadFiles, renderFileTree,
-  saveFile, onLengthChange, handleDrop, restoreFromCache
+  saveFile, onLengthChange, handleDrop, restoreFromCache,
+  getActiveFileRow as _getActiveFileRowImport,
+  persistActiveFile as _persistActiveFileImport
 } from './files.js';
 import { bootProjects } from './projects.js';
 
@@ -35,6 +37,8 @@ import { bootProjects } from './projects.js';
 window.state = state;
 window.__edit_markDirty = __markDirty;
 window.markDirty = __markDirty;
+window.__files_getActiveFileRow = _getActiveFileRowImport;
+window.__files_persistActiveFile = _persistActiveFileImport;
 
 /* Add new item */
 $addItemBtn.addEventListener('click', () => {

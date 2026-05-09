@@ -574,9 +574,9 @@
       chars: 7,
       tokens: 2
     }];
-    // Mark dirty (which should trigger persistActiveFile -> flushFileDebounced)
-    w.__edit_markDirty(w.state.items[0]);
-    // Wait > debounce window
+    // Persist the file (this is what markDirty() ends up calling internally)
+    await w.__files_persistActiveFile();
+    // Wait > debounce window so the timer fires + write completes
     await sleep(700);
     // Verify the file was persisted
     const files = await w.__projects_loadActiveProjectFiles();
