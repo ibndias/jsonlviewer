@@ -10,6 +10,7 @@ import { renderView, updateStats, updateDirtyBadge } from './view.js';
 import { confirmModal } from './modal.js';
 import { exportRawFor } from './view-card.js';
 import { fmtNum } from './path.js';
+import { flushFile, flushFileDebounced, getActiveProject, loadActiveProjectFiles } from './projects.js';
 
 /* ---- Per-file snapshot helpers ---- */
 // Save current per-file state into the active file's snapshot.
@@ -161,7 +162,7 @@ export async function loadFile(file, opts={}){
   await _parseFileIntoState(file, folder);
 
   // Register new file slot.
-  const id = newFileId();
+  const id = opts.persistedId || newFileId();
   const slot = {id, folder, snapshot:null};
   state.files.push(slot);
   state.activeId = id;
@@ -177,6 +178,29 @@ export async function loadFile(file, opts={}){
   main.replaceChildren();
   main.append(el('strong', null, file.name),
               document.createTextNode(' active — drop more, click ‹+ Files› / ‹+ Folder›, or pick another from the left.'));
+
+  // Persist to IDB unless suppressed (cache restore path).
+  if (!opts.suppressFlush){
+    try {
+      const text = await file.text();
+      const proj = getActiveProject();
+      if (proj){
+        await flushFile({
+          id,
+          projectId: proj.id,
+          name: file.name,
+          folder,
+          ext: file.name.toLowerCase().endsWith('.jsonl') ? 'jsonl' : 'json',
+          sizeBytes: file.size,
+          sessionOnly: false,
+          content: text,
+          updatedAt: Date.now()
+        });
+      }
+    } catch (e) {
+      console.warn('flushFile failed:', e);
+    }
+  }
 }
 
 export async function loadFiles(fileList, opts={}){
@@ -363,4 +387,61 @@ export function collectEntry(entry, folderPath, out){
       readBatch();
     } else { resolve(); }
   });
+}
+
+/* ---------- Cache restore ---------- */
+let _loadFileStub = null;
+
+export function __setLoadFileStub(fn){ _loadFileStub = fn; }
+export function __clearLoadFileStub(){ _loadFileStub = null; }
+
+export async function restoreFromCache(){
+  const cached = await loadActiveProjectFiles();
+  for (const row of cached){
+    if (row.sessionOnly || !row.content) continue;
+    const blob = new Blob([row.content], { type: row.ext === 'jsonl' ? 'application/jsonl' : 'application/json' });
+    const file = new File([blob], row.name, { type: blob.type });
+    const opts = { folder: row.folder, suppressFlush: true, persistedId: row.id };
+    if (_loadFileStub){
+      await _loadFileStub(file, opts);
+    } else {
+      await loadFile(file, opts);
+    }
+  }
+}
+
+window.__files_setLoadFileStub = __setLoadFileStub;
+window.__files_clearLoadFileStub = __clearLoadFileStub;
+window.__files_restoreFromCache = restoreFromCache;
+
+/* ---------- Active file row helpers (used by Task 5) ---------- */
+export function getActiveFileRow(){
+  const slot = state.files.find(s => s.id === state.activeId);
+  if (!slot) return null;
+  const liveItemsArr = state.items.filter(it => !it.deleted);
+  let text;
+  if (state.sourceShape === 'jsonl'){
+    text = liveItemsArr.map(it => exportRawFor(it)).filter(Boolean).join('\n') + '\n';
+  } else {
+    text = JSON.stringify(liveItemsArr.map(it => it.parsed), null, 2);
+  }
+  const ext = (state.fileName || '').toLowerCase().endsWith('.jsonl') ? 'jsonl' : 'json';
+  const proj = getActiveProject();
+  if (!proj) return null;
+  return {
+    id: slot.id,
+    projectId: proj.id,
+    name: state.fileName || 'untitled',
+    folder: slot.folder || '',
+    ext,
+    sizeBytes: text.length,
+    sessionOnly: false,
+    content: text,
+    updatedAt: Date.now()
+  };
+}
+
+export async function persistActiveFile(){
+  const row = getActiveFileRow();
+  if (row) await flushFileDebounced(row);
 }

@@ -27,8 +27,9 @@ import {
 } from './view.js';
 import {
   loadFiles, renderFileTree,
-  saveFile, onLengthChange, handleDrop
+  saveFile, onLengthChange, handleDrop, restoreFromCache
 } from './files.js';
+import { bootProjects } from './projects.js';
 
 /* Add new item */
 $addItemBtn.addEventListener('click', () => {
@@ -352,7 +353,15 @@ if (!testMode){
 
 /* Init */
 initTheme();
-updateStats();
-renderSidebar();
-renderFileTree();
-updateDirtyBadge();
+(async () => {
+  try {
+    await bootProjects();
+    await restoreFromCache();
+  } catch (e) {
+    console.warn('boot/restore failed:', e);
+  }
+  updateStats();
+  renderSidebar();
+  renderFileTree();
+  updateDirtyBadge();
+})();

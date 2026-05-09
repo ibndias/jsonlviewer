@@ -527,6 +527,28 @@
     remote.close();
   });
 
+  test('restoreFromCache: iterates cached rows and calls loadFile for each', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    fwin().__projects_setDbName(tname);
+    await fwin().__projects_boot();
+    const proj = fwin().__projects_active();
+    await fwin().__projects_flushFile({
+      id:'r1', projectId: proj.id, name:'a.jsonl', folder:'',
+      ext:'jsonl', sizeBytes:5, sessionOnly:false, content:'{"a":1}\n',
+      updatedAt: Date.now()
+    });
+    const calls = [];
+    fwin().__files_setLoadFileStub((file, opts) => calls.push({name: file.name, opts}));
+    await fwin().__files_restoreFromCache();
+    assertEq(calls.length, 1);
+    assertEq(calls[0].name, 'a.jsonl');
+    assertEq(calls[0].opts.persistedId, 'r1');
+    assertEq(calls[0].opts.suppressFlush, true);
+    fwin().__files_clearLoadFileStub();
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
+  });
+
   /* ---------- Run ---------- */
   async function runAll(){
     $log.replaceChildren();
