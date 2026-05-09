@@ -2,12 +2,8 @@
 import { el } from './dom.js';
 import { state } from './state.js';
 import { pathKey, pathIdx } from './path.js';
-import { keyColor } from './view-colorize.js';
 import { promptKey } from './modal.js';
-import {
-  markDirty, removeAtPath, appendArrayItem, addObjectKey,
-  startInlineEdit, startKeyEdit, startValueEdit
-} from './view-edit.js';
+import { removeAtPath, appendArrayItem, addObjectKey } from './view-edit.js';
 import { renderMarkdownToDOM } from './view-markdown.js';
 
 export const makeStringSpan = (v, path) => {

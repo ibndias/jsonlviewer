@@ -1,10 +1,9 @@
 // js/view-card.js
-import { el, $list, showToast } from './dom.js';
+import { el, showToast } from './dom.js';
 import { state } from './state.js';
 import { estimateTokens, fmtNum } from './path.js';
-import { renderNode, applyNewlineMode, renderStringSpan } from './view-node.js';
+import { renderNode } from './view-node.js';
 import { detectChatFormat, renderChatView } from './view-chat.js';
-import { applyMarkdownMode } from './view-markdown.js';
 import { applyColorize } from './view-colorize.js';
 import { openRawEditor } from './view-edit.js';
 import { confirmModal } from './modal.js';

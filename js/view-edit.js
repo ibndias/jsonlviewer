@@ -4,7 +4,7 @@ import { state } from './state.js';
 import { parsePath, walkPath } from './path.js';
 import { makeKeyEl } from './view-node.js';
 import { applyColorize } from './view-colorize.js';
-import { recomputeItemMetrics, rebuildCardInPlace, getCardEl } from './view-card.js';
+import { recomputeItemMetrics, rebuildCardInPlace } from './view-card.js';
 import { analyzeSchema, renderSidebar } from './schema.js';
 import { updateDirtyBadge, updateStats } from './view.js';
 
