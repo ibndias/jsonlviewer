@@ -1,6 +1,7 @@
 // js/main.js — bootstrap; modules extracted incrementally.
 import './db.js';
 import './projects.js';
+import './export.js';
 import './sync.js';
 import { subscribe as _subscribe } from './sync.js';
 import { getActiveProject as _getActiveProject } from './projects.js';

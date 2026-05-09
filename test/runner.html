@@ -696,6 +696,62 @@
     await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
+  test('export: bundle round-trip preserves content + metadata', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    fwin().__projects_setDbName(tname);
+    await fwin().__projects_boot();
+    const proj = fwin().__projects_active();
+    await fwin().__projects_flushFile({
+      id: 'rt1', projectId: proj.id, name: 'r.jsonl', folder: '',
+      ext: 'jsonl', sizeBytes: 8, sessionOnly: false,
+      content: '{"a":1}\n{"b":2}\n', updatedAt: Date.now()
+    });
+    const bundle = await fwin().__export_project(proj.id);
+    assertEq(bundle.format, 'jsonlviewer-bundle');
+    assertEq(bundle.schemaVersion, 1);
+    assertEq(bundle.projects.length, 1);
+    assertEq(bundle.projects[0].files.length, 1);
+    assertEq(bundle.projects[0].files[0].content, '{"a":1}\n{"b":2}\n');
+    assertEq(bundle.projects[0].files[0].name, 'r.jsonl');
+    assertEq(bundle.projects[0].files[0].ext, 'jsonl');
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
+  });
+
+  test('import: malformed bundle rejected', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    fwin().__projects_setDbName(tname);
+    await fwin().__projects_boot();
+    let err = null;
+    try {
+      await fwin().__import_bundle({format: 'wrong', schemaVersion: 1, projects: []});
+    } catch (e) { err = e.message; }
+    assert(err && err.includes('format'), 'expected format error, got: ' + err);
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
+  });
+
+  test('import: valid bundle inserts project + file', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    fwin().__projects_setDbName(tname);
+    await fwin().__projects_boot();
+    const bundle = {
+      format: 'jsonlviewer-bundle', schemaVersion: 1, exportedAt: Date.now(),
+      projects: [{
+        id: 'pX', name: 'Imported',
+        createdAt: 1, updatedAt: 1,
+        files: [{name:'a.jsonl', folder:'', ext:'jsonl', sizeBytes:7, content:'{"a":1}\n'}]
+      }]
+    };
+    const ids = await fwin().__import_bundle(bundle);
+    assertEq(ids.length, 1);
+    const projs = await fwin().__projects_list();
+    // Should have the original 'Untitled' + the newly imported project
+    assert(projs.length >= 2, 'expected >=2 projects, got ' + projs.length);
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
+  });
+
   /* ---------- Run ---------- */
   async function runAll(){
     $log.replaceChildren();

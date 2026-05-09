@@ -185,6 +185,51 @@ function buildCommandList(){
   cmds.push({label: 'View: Expand All', action: () => $('expandAll')?.click()});
   cmds.push({label: 'View: Collapse All', action: () => $('collapseAll')?.click()});
   cmds.push({label: 'View: Settings…', action: () => w.__projectsui_openSettings?.()});
+  cmds.push({label: 'Project: Export Active', action: async () => {
+    const proj = w.__projects_active();
+    if (!proj){ showToast('No active project', 'err'); return; }
+    const bundle = await w.__export_project(proj.id);
+    w.__export_download(bundle, `${proj.name.replace(/[^A-Za-z0-9_-]+/g, '_')}.json`);
+    showToast('Exported');
+  }});
+  cmds.push({label: 'Project: Export All', action: async () => {
+    const bundle = await w.__export_all();
+    w.__export_download(bundle, `jsonlviewer-all-${new Date().toISOString().slice(0,10)}.json`);
+    showToast('Exported all');
+  }});
+  cmds.push({label: 'Project: Import Bundle…', action: () => {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.json,application/json';
+    inp.style.display = 'none';
+    document.body.append(inp);
+    inp.addEventListener('change', async (e) => {
+      const f = e.target.files?.[0];
+      if (!f) { inp.remove(); return; }
+      try {
+        const text = await f.text();
+        const bundle = JSON.parse(text);
+        const ids = await w.__import_bundle(bundle);
+        // Switch to first imported project
+        if (ids.length){
+          const state = w.state;
+          state.files = []; state.activeId = null; state.items = [];
+          await w.__projects_switch(ids[0]);
+          // Re-render via projects-ui hooks
+          const filesM = await import('./files.js?cb=' + Date.now());
+          await filesM.restoreFromCache();
+          w.__projectsui_refreshChip?.();
+          w.__projectsui_refreshStatusBar?.();
+        }
+        showToast(`Imported ${ids.length} project${ids.length===1?'':'s'}`);
+      } catch (err) {
+        console.error(err);
+        showToast('Import failed: ' + err.message, 'err');
+      }
+      inp.remove();
+    });
+    inp.click();
+  }});
   return cmds;
 }
 
