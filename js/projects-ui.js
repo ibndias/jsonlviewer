@@ -57,7 +57,7 @@ async function openPopup(){
   const newBtn = el('button', 'pp-action', '+ New Project');
   newBtn.addEventListener('click', async () => { closePopup(); await doNewProject(); });
   pop.append(newBtn);
-  const manageBtn = el('button', 'pp-action', '⚙ Manage Projects…');
+  const manageBtn = el('button', 'pp-action', 'Manage Projects…');
   manageBtn.addEventListener('click', () => { closePopup(); openManageModal(); });
   pop.append(manageBtn);
 

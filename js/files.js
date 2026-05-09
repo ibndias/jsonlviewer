@@ -304,7 +304,23 @@ export function buildFolderRow(name, slots){
   const head = el('div','folder-row open');
   head.append(
     el('span','folder-caret'),
-    el('span','folder-icon','📁'),
+    (() => {
+      const span = el('span','folder-icon');
+      const SVG = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(SVG, 'svg');
+      svg.setAttribute('class', 'icon');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '2');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      const path = document.createElementNS(SVG, 'path');
+      path.setAttribute('d', 'M4 4h4l2 2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z');
+      svg.append(path);
+      span.append(svg);
+      return span;
+    })(),
     el('span','file-name', name + '/'),
     el('span','file-meta', String(slots.length))
   );
