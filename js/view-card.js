@@ -28,6 +28,8 @@ export function makeItem(fileIdx, prefix, rawText, parsed, error){
     tokens: estimateTokens(charCount),
     searchText: error ? rawText.toLowerCase() : JSON.stringify(parsed).toLowerCase(),
     topKeys,
+    tags: [],          // user-applied labels (string[])
+    review: null,      // null | 'approve' | 'reject' | 'todo'
   };
 }
 
