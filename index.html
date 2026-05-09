@@ -406,11 +406,13 @@
     background:var(--panel); color:var(--accent);
     box-shadow:inset 2px 0 0 var(--accent);
   }
-  /* Inline SVG icons */
-  .icon{ width:18px; height:18px; display:block; flex-shrink:0; }
-  .btn .icon, .file-btn .icon, .mini-btn .icon{ margin-right:var(--s-1); }
-  .btn.ghost .icon{ margin-right:0; }
-  .act-btn .icon{ width:20px; height:20px; }
+  /* Icons (Lucide-injected SVG + inline SVG fallback) */
+  .icon, [data-lucide], .lucide{ width:18px; height:18px; display:inline-block; flex-shrink:0; stroke-width:2; }
+  .btn .icon, .file-btn .icon, .mini-btn .icon,
+  .btn [data-lucide], .file-btn [data-lucide], .mini-btn [data-lucide]{ margin-right:var(--s-1); }
+  .btn.ghost .icon, .btn.ghost [data-lucide]{ margin-right:0; }
+  .act-btn .icon, .act-btn [data-lucide]{ width:20px; height:20px; }
+  .mini-btn [data-lucide]{ width:14px; height:14px; }
 
   .side-bar{
     background:var(--panel); border-right:1px solid var(--border-soft);
@@ -874,7 +876,7 @@
         <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.27-.01-1-.02-1.96-3.2.7-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.34.95.1-.74.4-1.25.72-1.54-2.55-.29-5.23-1.27-5.23-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.15 1.17a10.94 10.94 0 0 1 5.74 0c2.18-1.48 3.14-1.17 3.14-1.17.62 1.59.23 2.76.11 3.05.74.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.25 5.65.41.36.78 1.07.78 2.16 0 1.56-.01 2.81-.01 3.19 0 .31.21.68.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
       </a>
       <button class="btn ghost" id="settingsBtn" title="Settings" aria-label="Settings">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <i data-lucide="settings"></i>
       </button>
       <label class="file-btn" title="Open file(s)">
         Open
@@ -889,20 +891,20 @@
     <!-- Activity bar -->
     <nav class="activity-bar" id="activityBar">
       <button class="act-btn active" data-panel="files" title="Files (Ctrl+B)" aria-label="Files">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h4l2 2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+        <i data-lucide="folder"></i>
       </button>
       <button class="act-btn" data-panel="projects" title="Projects" aria-label="Projects">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2l2 2h6a2 2 0 0 1 2 2z"/><path d="M2 8v11a2 2 0 0 0 2 2h14"/></svg>
+        <i data-lucide="folders"></i>
       </button>
       <button class="act-btn" data-panel="search" title="Search" aria-label="Search">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <i data-lucide="search"></i>
       </button>
       <button class="act-btn" data-panel="settings" title="Settings" aria-label="Settings">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <i data-lucide="settings"></i>
       </button>
       <div style="flex:1"></div>
       <button class="act-btn" data-panel="schema" title="Schema (toggle right panel)" aria-label="Schema">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></svg>
+        <i data-lucide="braces"></i>
       </button>
     </nav>
 
@@ -918,7 +920,7 @@
         <div class="files-toolbar">
           <button class="mini-btn" id="addFilesBtn" title="Open file(s)" style="flex:1">+ Open</button>
           <button class="mini-btn" id="addFolderBtn" title="Open a folder" aria-label="Open folder">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px; height:14px"><path d="M6 14h13l3-7H8l-2 2v5z"/><path d="M2 8a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v2"/></svg>
+            <i data-lucide="folder-open"></i>
           </button>
         </div>
         <input class="file-input" id="filesInput" type="file" multiple accept=".jsonl,.json,.txt,.log" />
@@ -1071,6 +1073,7 @@
 
   <div class="toast" id="toast"></div>
 
-<script type="module" src="js/main.js?v=p8"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script type="module" src="js/main.js?v=p9"></script>
 </body>
 </html>

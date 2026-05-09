@@ -462,4 +462,8 @@ if (!_isTestMode){
   renderFileTree();
   updateDirtyBadge();
   if (state.colorize) applyColorize();
+  // Render Lucide icons (replaces <i data-lucide> with inline <svg>).
+  if (typeof window.lucide !== 'undefined' && window.lucide.createIcons){
+    try { window.lucide.createIcons(); } catch (e) { console.warn('lucide.createIcons failed:', e); }
+  }
 })();
