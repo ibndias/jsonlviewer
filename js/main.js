@@ -11,15 +11,8 @@ import { confirmModal } from './modal.js';
 import { fmtNum } from './path.js';
 import { state } from './state.js';
 import { applyColorize } from './view-colorize.js';
-import {
-  makeStringSpan, makeKeyEl, makeRowDelBtn, makeNodeAddBtn, makeNodeDelBtn,
-  renderNode, applyNewlineMode, renderStringSpan
-} from './view-node.js';
-import {
-  markDirty, applyValueAtPath, applyKeyRenameAtPath, removeAtPath,
-  appendArrayItem, addObjectKey, activeEditing,
-  startInlineEdit, startKeyEdit, startValueEdit, openRawEditor
-} from './view-edit.js';
+import { applyNewlineMode } from './view-node.js';
+import { activeEditing, startInlineEdit } from './view-edit.js';
 import { applyMarkdownMode } from './view-markdown.js';
 import {
   makeItem, exportRawFor, syncExcluded
@@ -30,9 +23,8 @@ import {
   setActive, jumpRelative, toggleActiveTree
 } from './view.js';
 import {
-  snapshotCurrent, applyFromFile, switchToFile, closeFile,
-  resetView, loadFile, loadFiles, renderFileTree,
-  saveFile, readNumOrNull, onLengthChange, handleDrop
+  loadFiles, renderFileTree,
+  saveFile, onLengthChange, handleDrop
 } from './files.js';
 
 /* Add new item */
