@@ -670,6 +670,32 @@
     fwin().__palette_close();
   });
 
+  test('settings: getSettings returns defaults; setSettings persists', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    fwin().__projects_setDbName(tname);
+    await fwin().__projects_boot();
+    let s = await fwin().__projects_getSettings();
+    assertEq(s.bigFileCapMB, 50);
+    await fwin().__projects_setSettings({ bigFileCapMB: 25 });
+    s = await fwin().__projects_getSettings();
+    assertEq(s.bigFileCapMB, 25);
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
+  });
+
+  test('settings: clearAllData wipes projects + files', async () => {
+    await reloadFrame();
+    const tname = 'jsonlviewer-t-' + Date.now();
+    fwin().__projects_setDbName(tname);
+    await fwin().__projects_boot();
+    const proj = fwin().__projects_active();
+    await fwin().__projects_flushFile({id:'cz1', projectId:proj.id, name:'x.json', folder:'', ext:'json', sizeBytes:1, sessionOnly:false, content:'{}', updatedAt:1});
+    await fwin().__projects_clearAll();
+    const projs = await fwin().__projects_list();
+    assertEq(projs.length, 0);
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
+  });
+
   /* ---------- Run ---------- */
   async function runAll(){
     $log.replaceChildren();

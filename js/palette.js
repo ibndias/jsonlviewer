@@ -184,6 +184,7 @@ function buildCommandList(){
   cmds.push({label: 'View: Toggle Quick Copy', action: () => $('quickCopyToggle')?.click()});
   cmds.push({label: 'View: Expand All', action: () => $('expandAll')?.click()});
   cmds.push({label: 'View: Collapse All', action: () => $('collapseAll')?.click()});
+  cmds.push({label: 'View: Settings…', action: () => w.__projectsui_openSettings?.()});
   return cmds;
 }
 

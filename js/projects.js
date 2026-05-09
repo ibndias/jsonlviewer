@@ -141,6 +141,33 @@ export async function deleteProject(id){
   }
 }
 
+const DEFAULT_SETTINGS = { bigFileCapMB: 50 };
+
+export async function getSettings(){
+  const db = await ensureDb();
+  const s = await dbMetaGet(db, 'settings');
+  return { ...DEFAULT_SETTINGS, ...(s || {}) };
+}
+
+export async function setSettings(patch){
+  const db = await ensureDb();
+  const cur = await getSettings();
+  const next = { ...cur, ...patch };
+  await dbMetaSet(db, 'settings', next);
+  return next;
+}
+
+export async function clearAllData(){
+  const db = await ensureDb();
+  const projects = await dbAll(db, 'projects');
+  for (const p of projects) await dbDelete(db, 'projects', p.id);
+  const files = await dbAll(db, 'files');
+  for (const f of files) await dbDelete(db, 'files', f.id);
+  await dbDelete(db, 'meta', 'activeProjectId');
+  await dbDelete(db, 'meta', 'settings');
+  _active = null;
+}
+
 // --- Test hooks ---
 window.__projects_setDbName = (name) => {
   _dbNameOverride = name;
@@ -158,3 +185,6 @@ window.__projects_create = createProject;
 window.__projects_switch = switchProject;
 window.__projects_rename = renameProject;
 window.__projects_delete = deleteProject;
+window.__projects_getSettings = getSettings;
+window.__projects_setSettings = setSettings;
+window.__projects_clearAll = clearAllData;

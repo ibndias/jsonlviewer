@@ -34,7 +34,7 @@ import {
   persistActiveFile as _persistActiveFileImport
 } from './files.js';
 import { bootProjects } from './projects.js';
-import { initProjectChip, initStatusBar, refreshStatusBar, refreshChip } from './projects-ui.js';
+import { initProjectChip, initStatusBar, refreshStatusBar, refreshChip, openSettingsModal } from './projects-ui.js';
 import { openCommandPalette, openQuickOpen } from './palette.js';
 
 // Test-harness window hooks (only readable in test mode but cheap to attach):
@@ -163,6 +163,9 @@ const $addFilesBtn = $('addFilesBtn');
 const $addFolderBtn = $('addFolderBtn');
 if ($addFilesBtn) $addFilesBtn.addEventListener('click', () => $filesInput.click());
 if ($addFolderBtn) $addFolderBtn.addEventListener('click', () => $folderInput.click());
+
+const $settingsBtn = $('settingsBtn');
+if ($settingsBtn) $settingsBtn.addEventListener('click', openSettingsModal);
 
 /* Toggles */
 $nl.addEventListener('change', () => {

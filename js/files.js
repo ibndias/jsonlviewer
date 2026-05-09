@@ -10,7 +10,7 @@ import { renderView, updateStats, updateDirtyBadge } from './view.js';
 import { confirmModal } from './modal.js';
 import { exportRawFor } from './view-card.js';
 import { fmtNum } from './path.js';
-import { flushFile, flushFileDebounced, getActiveProject, loadActiveProjectFiles, deleteFile as _projectsDeleteFile } from './projects.js';
+import { flushFile, flushFileDebounced, getActiveProject, loadActiveProjectFiles, deleteFile as _projectsDeleteFile, getSettings } from './projects.js';
 
 /* ---- Per-file snapshot helpers ---- */
 // Save current per-file state into the active file's snapshot.
@@ -187,20 +187,38 @@ export async function loadFile(file, opts={}){
   // Persist to IDB unless suppressed (cache restore path).
   if (!opts.suppressFlush){
     try {
-      const text = await file.text();
+      const settings = await getSettings();
+      const capBytes = (settings.bigFileCapMB || 50) * 1024 * 1024;
       const proj = getActiveProject();
       if (proj){
-        await flushFile({
-          id,
-          projectId: proj.id,
-          name: file.name,
-          folder,
-          ext: file.name.toLowerCase().endsWith('.jsonl') ? 'jsonl' : 'json',
-          sizeBytes: file.size,
-          sessionOnly: false,
-          content: text,
-          updatedAt: Date.now()
-        });
+        if (file.size > capBytes){
+          // Session-only: write metadata row without content.
+          await flushFile({
+            id,
+            projectId: proj.id,
+            name: file.name,
+            folder,
+            ext: file.name.toLowerCase().endsWith('.jsonl') ? 'jsonl' : 'json',
+            sizeBytes: file.size,
+            sessionOnly: true,
+            content: undefined,
+            updatedAt: Date.now()
+          });
+          showToast(`${file.name} kept session-only (>${settings.bigFileCapMB}MB)`);
+        } else {
+          const text = await file.text();
+          await flushFile({
+            id,
+            projectId: proj.id,
+            name: file.name,
+            folder,
+            ext: file.name.toLowerCase().endsWith('.jsonl') ? 'jsonl' : 'json',
+            sizeBytes: file.size,
+            sessionOnly: false,
+            content: text,
+            updatedAt: Date.now()
+          });
+        }
       }
     } catch (e) {
       console.warn('flushFile failed:', e);
@@ -403,7 +421,20 @@ export function __clearLoadFileStub(){ _loadFileStub = null; }
 export async function restoreFromCache(){
   const cached = await loadActiveProjectFiles();
   for (const row of cached){
-    if (row.sessionOnly || !row.content) continue;
+    if (row.sessionOnly || !row.content){
+      // Add a placeholder slot so the tree shows the file. Mark sessionOnly.
+      const slot = {id: row.id, folder: row.folder, sessionOnly: true, snapshot: {
+        fileName: row.name + ' (session-only)',
+        mode: row.ext, sourceShape: row.ext,
+        items: [], schema: new Map(),
+        selectedKeys: new Set(),
+        searchQuery: '', minTokens: null, maxTokens: null,
+        sortMode: 'default', pagesShown: 1, viewItems: [], activeOrigIdx: -1
+      }};
+      state.files.push(slot);
+      renderFileTree();
+      continue;
+    }
     const blob = new Blob([row.content], { type: row.ext === 'jsonl' ? 'application/jsonl' : 'application/json' });
     const file = new File([blob], row.name, { type: blob.type });
     const opts = { folder: row.folder, suppressFlush: true, persistedId: row.id };

@@ -2,7 +2,8 @@
 import { el, $modal, $modalTitle, $modalBody, $modalOk, $modalCancel, showToast } from './dom.js';
 import {
   bootProjects, getActiveProject, listProjects,
-  createProject, switchProject, renameProject, deleteProject
+  createProject, switchProject, renameProject, deleteProject,
+  getSettings, setSettings, clearAllData
 } from './projects.js';
 import { restoreFromCache } from './files.js';
 import { state } from './state.js';
@@ -206,6 +207,72 @@ async function openManageModal(){
   $modal.addEventListener('click', bgFn);
   document.addEventListener('keydown', keyFn, true);
 }
+
+export async function openSettingsModal(){
+  const cur = await getSettings();
+  $modalTitle.textContent = 'Settings';
+  $modalBody.replaceChildren();
+
+  const wrap = el('div', 'settings-form');
+
+  // Big-file cap
+  const capRow = el('div', 'settings-row');
+  capRow.append(el('label', null, 'Big-file cap (MB)'));
+  const capInp = document.createElement('input');
+  capInp.type = 'number'; capInp.min = '1'; capInp.max = '5000';
+  capInp.value = String(cur.bigFileCapMB);
+  capInp.className = 'modal-input';
+  capRow.append(capInp);
+  capRow.append(el('div', 'settings-help', 'Files larger than this are kept session-only (not cached).'));
+  wrap.append(capRow);
+
+  // Clear cache
+  const clearRow = el('div', 'settings-row');
+  const clearBtn = el('button', 'btn danger', 'Clear all cached data');
+  clearBtn.addEventListener('click', async () => {
+    if (!confirm('Delete ALL projects, files, and settings? This cannot be undone.')) return;
+    await clearAllData();
+    location.reload();
+  });
+  clearRow.append(clearBtn);
+  clearRow.append(el('div', 'settings-help', 'Removes every project, file, and setting from this browser. Reloads the page.'));
+  wrap.append(clearRow);
+
+  $modalBody.append(wrap);
+
+  $modalOk.textContent = 'Save';
+  $modalOk.className = 'btn primary';
+  $modalOk.style.background = ''; $modalOk.style.borderColor = '';
+  $modal.style.display = 'flex';
+
+  return new Promise(resolve => {
+    const cleanup = (val) => {
+      $modal.style.display = 'none';
+      $modalOk.removeEventListener('click', okFn);
+      $modalCancel.removeEventListener('click', cancelFn);
+      $modal.removeEventListener('click', bgFn);
+      document.removeEventListener('keydown', keyFn, true);
+      resolve(val);
+    };
+    const okFn = async () => {
+      const cap = Math.max(1, parseInt(capInp.value, 10) || 50);
+      await setSettings({ bigFileCapMB: cap });
+      showToast('Settings saved');
+      cleanup(true);
+    };
+    const cancelFn = () => cleanup(false);
+    const bgFn = (e) => { if (e.target === $modal) cleanup(false); };
+    const keyFn = (e) => {
+      if (e.key === 'Escape'){ e.preventDefault(); cleanup(false); }
+    };
+    $modalOk.addEventListener('click', okFn);
+    $modalCancel.addEventListener('click', cancelFn);
+    $modal.addEventListener('click', bgFn);
+    document.addEventListener('keydown', keyFn, true);
+  });
+}
+
+window.__projectsui_openSettings = openSettingsModal;
 
 // --- Status bar ---
 export function initStatusBar(){
