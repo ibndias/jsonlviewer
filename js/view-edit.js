@@ -4,13 +4,14 @@ import { state } from './state.js';
 import { parsePath, walkPath } from './path.js';
 import { makeKeyEl } from './view-node.js';
 import { applyColorize } from './view-colorize.js';
+import { recomputeItemMetrics, rebuildCardInPlace, getCardEl } from './view-card.js';
 
 export function markDirty(item){
   if (!item.dirty){
     item.dirty = true;
     window.updateDirtyBadge();
   }
-  window.recomputeItemMetrics(item);
+  recomputeItemMetrics(item);
 }
 
 export function applyValueAtPath(item, path, newValue){
@@ -66,7 +67,7 @@ export function removeAtPath(item, path){
     delete parent[lastKey];
   }
   markDirty(item);
-  window.rebuildCardInPlace(item);
+  rebuildCardInPlace(item);
   window.updateStats();
   window.analyzeSchema(); window.renderSidebar();
 }
@@ -79,7 +80,7 @@ export function appendArrayItem(item, path){
   if (!Array.isArray(target)) return;
   target.push(null);
   markDirty(item);
-  window.rebuildCardInPlace(item);
+  rebuildCardInPlace(item);
   window.updateStats();
 }
 
@@ -95,7 +96,7 @@ export function addObjectKey(item, path, keyName){
   }
   target[keyName] = null;
   markDirty(item);
-  window.rebuildCardInPlace(item);
+  rebuildCardInPlace(item);
   window.updateStats();
   window.analyzeSchema(); window.renderSidebar();
 }
@@ -127,8 +128,8 @@ export function startKeyEdit(item, spanEl){
       const newKey = inp.value;
       if (newKey && newKey !== oldKey){
         const ok = applyKeyRenameAtPath(item, oldPath, newKey);
-        if (!ok){ window.rebuildCardInPlace(item); return; }
-        window.rebuildCardInPlace(item);
+        if (!ok){ rebuildCardInPlace(item); return; }
+        rebuildCardInPlace(item);
         window.updateStats();
         window.analyzeSchema(); window.renderSidebar();
         showToast('Renamed key');
@@ -193,7 +194,7 @@ export function startValueEdit(item, spanEl){
   let done = false;
   const finish = (commit) => {
     if (done) return; done = true;
-    if (!commit){ window.rebuildCardInPlace(item); return; }
+    if (!commit){ rebuildCardInPlace(item); return; }
     let newVal;
     try {
       if (vtype === 'string'){ newVal = inp.value; }
@@ -214,11 +215,11 @@ export function startValueEdit(item, spanEl){
       }
     } catch (e) {
       showToast('Invalid: ' + e.message, 'err');
-      window.rebuildCardInPlace(item);
+      rebuildCardInPlace(item);
       return;
     }
     applyValueAtPath(item, path, newVal);
-    window.rebuildCardInPlace(item);
+    rebuildCardInPlace(item);
     window.updateStats();
     window.analyzeSchema(); window.renderSidebar();
   };
@@ -266,7 +267,7 @@ export function openRawEditor(item, bodyEl){
   ta.addEventListener('input', validate);
   validate();
 
-  const restore = () => { window.rebuildCardInPlace(item); };
+  const restore = () => { rebuildCardInPlace(item); };
   cancelB.addEventListener('click', restore);
   saveB.addEventListener('click', () => {
     const r = validate();
@@ -274,8 +275,8 @@ export function openRawEditor(item, bodyEl){
     item.parsed = r.value;
     item.error = false;
     item.dirty = true;
-    window.recomputeItemMetrics(item);
-    window.rebuildCardInPlace(item);
+    recomputeItemMetrics(item);
+    rebuildCardInPlace(item);
     window.analyzeSchema(); window.renderSidebar();
     window.updateStats();
     window.updateDirtyBadge();
