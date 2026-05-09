@@ -172,7 +172,12 @@ if ($addFilesBtn) $addFilesBtn.addEventListener('click', () => $filesInput.click
 if ($addFolderBtn) $addFolderBtn.addEventListener('click', () => $folderInput.click());
 
 const $settingsBtn = $('settingsBtn');
-if ($settingsBtn) $settingsBtn.addEventListener('click', openSettingsModal);
+if ($settingsBtn) $settingsBtn.addEventListener('click', () => {
+  // Open the Settings side panel (where the toggles live).
+  window.__shell_switchPanel?.('settings');
+  // Make sure the side bar isn't collapsed (mobile).
+  document.getElementById('sideBar')?.classList.remove('collapsed');
+});
 
 /* Toggles */
 $nl.addEventListener('change', () => {
@@ -432,4 +437,5 @@ if (!_isTestMode){
   renderSidebar();
   renderFileTree();
   updateDirtyBadge();
+  if (state.colorize) applyColorize();
 })();

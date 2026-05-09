@@ -4,7 +4,7 @@ export const state = {
   mode: 'unknown',
   sourceShape: 'array',
   modeNewlines: true,
-  colorize: false,
+  colorize: true,
   quickCopy: false,
   markdown: false,
   editMode: false,
