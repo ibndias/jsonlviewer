@@ -448,7 +448,7 @@
     const idxNames = [...tx.objectStore('files').indexNames];
     assert(idxNames.includes('byProject'), 'byProject index missing');
     db.close();
-    await new Promise((res) => { indexedDB.deleteDatabase(tname).onsuccess = res; });
+    await new Promise((res) => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
   test('db: put + get round-trip on projects store', async () => {
@@ -460,7 +460,7 @@
     assertEq(got.id, 'p1');
     assertEq(got.name, 'X');
     db.close();
-    await new Promise(res => { indexedDB.deleteDatabase(tname).onsuccess = res; });
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
   test('db: byProject index lists files of a project', async () => {
@@ -472,7 +472,7 @@
     const ours = await fwin().__db_listByProject(db, 'p1');
     assertEq(ours.length, 2);
     db.close();
-    await new Promise(res => { indexedDB.deleteDatabase(tname).onsuccess = res; });
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
   test('projects: bootProjects creates Untitled if none', async () => {
@@ -483,7 +483,7 @@
     assert(active);
     assertEq(active.name, 'Untitled');
     assert(Array.isArray(active.fileIds));
-    await new Promise(res => { indexedDB.deleteDatabase(tname).onsuccess = res; });
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
   test('projects: flushFile then loadActiveProjectFiles round-trip', async () => {
@@ -500,7 +500,7 @@
     assertEq(files.length, 1);
     assertEq(files[0].name, 'a.jsonl');
     assertEq(files[0].content, '{"a":1}\n');
-    await new Promise(res => { indexedDB.deleteDatabase(tname).onsuccess = res; });
+    await new Promise(res => { const r = indexedDB.deleteDatabase(tname); r.onsuccess = res; r.onerror = res; r.onblocked = res; });
   });
 
   /* ---------- Run ---------- */
