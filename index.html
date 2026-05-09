@@ -248,43 +248,131 @@
     text-transform:uppercase; letter-spacing:.06em;
   }
 
-  main{padding:0 var(--s-7) var(--s-8); max-width:1280px; margin:var(--s-5) auto 0}
-
-  .layout{display:grid; grid-template-columns:230px 1fr 240px; gap:var(--s-5); align-items:start}
-  @media (max-width:1180px){
-    .layout{grid-template-columns:220px 1fr}
-    .right-col{display:none}
-  }
-  @media (max-width:760px){
-    .layout{grid-template-columns:1fr}
-    .left-col, .sidebar{position:static !important; max-height:none !important}
-  }
-
-  /* ---------- Sidebar columns ---------- */
-  .left-col, .right-col, .sidebar{
-    position:sticky; top:104px; max-height:calc(100vh - 130px); overflow:auto;
-    background:transparent; border:0; padding:0;
-  }
-
   /* ---------- Panels (.side-section, .card, .modal share spacing) ---------- */
   .panel, .side-section, .card{
     background:var(--panel); border:1px solid var(--border-soft); border-radius:var(--r-xl);
     box-shadow:var(--shadow-sm);
   }
-  .left-col > .side-section,
-  .right-col > .side-section,
-  .sidebar > .side-section{
-    padding:var(--s-5) var(--s-5) var(--s-4); margin-bottom:var(--s-4);
-  }
-  .left-col > .side-section:last-child,
-  .right-col > .side-section:last-child,
-  .sidebar > .side-section:last-child{margin-bottom:0}
   .side-title{
     font:600 var(--fs-xs)/1.2 var(--sans); text-transform:uppercase; letter-spacing:.08em;
     color:var(--muted-2); margin:0 0 var(--s-3);
   }
   .side-keys{display:flex; flex-wrap:wrap; gap:var(--s-2)}
   .side-empty{color:var(--muted); font:var(--fs-base)/var(--lh-base) var(--sans)}
+
+  /* ---------- Shell ---------- */
+  .topbar{
+    display:flex; align-items:center; gap:var(--s-3);
+    padding:var(--s-3) var(--s-5);
+    background:var(--panel); border-bottom:1px solid var(--border-soft);
+    height:48px;
+  }
+  .topbar h1{font:500 var(--fs-lg)/1.2 var(--serif); margin:0; color:var(--fg)}
+  .topbar .controls{display:flex; gap:var(--s-2); align-items:center}
+
+  .shell{
+    display:grid;
+    grid-template-columns:48px 260px 1fr 280px;
+    height:calc(100vh - 48px - 26px);  /* topbar 48 + status 26 */
+    overflow:hidden;
+  }
+
+  .activity-bar{
+    background:var(--panel-soft); border-right:1px solid var(--border-soft);
+    display:flex; flex-direction:column; align-items:center; padding:var(--s-2) 0; gap:var(--s-1);
+  }
+  .act-btn{
+    width:36px; height:36px; border-radius:var(--r-sm);
+    display:flex; align-items:center; justify-content:center;
+    background:transparent; border:none; cursor:pointer;
+    color:var(--muted); font:var(--fs-md)/1 var(--sans);
+    transition:background .12s, color .12s;
+  }
+  .act-btn:hover{background:var(--panel); color:var(--fg)}
+  .act-btn.active{
+    background:var(--panel); color:var(--accent);
+    box-shadow:inset 2px 0 0 var(--accent);
+  }
+
+  .side-bar{
+    background:var(--panel); border-right:1px solid var(--border-soft);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .side-panel{display:none; flex:1; flex-direction:column; padding:var(--s-3); gap:var(--s-3); overflow:auto}
+  .side-panel.active{display:flex}
+  .side-panel-header{
+    font:600 var(--fs-xs)/1.4 var(--sans); letter-spacing:0.08em;
+    color:var(--muted); text-transform:uppercase;
+    padding-bottom:var(--s-2); border-bottom:1px solid var(--border-soft);
+  }
+  .files-toolbar, .projects-toolbar{display:flex; gap:var(--s-2); margin-top:var(--s-2)}
+  .search-controls{display:flex; flex-direction:column; gap:var(--s-3); margin-top:var(--s-3)}
+  .search-controls .control-group{display:flex; flex-direction:column; gap:var(--s-1)}
+  .search-controls label{color:var(--muted); font-size:var(--fs-sm)}
+  .projects-list{display:flex; flex-direction:column; gap:var(--s-1); flex:1}
+  .projects-list .pl-row{
+    display:flex; align-items:center; gap:var(--s-2);
+    padding:var(--s-2) var(--s-3); border-radius:var(--r-sm);
+    cursor:pointer;
+  }
+  .projects-list .pl-row:hover{background:var(--panel-soft)}
+  .projects-list .pl-row.active{background:var(--accent-soft); color:var(--accent)}
+  .projects-list .pl-name{flex:1}
+  .projects-list .pl-meta{color:var(--muted-2); font-size:var(--fs-sm)}
+
+  .editor{display:flex; flex-direction:column; overflow:hidden; background:var(--bg)}
+  .tab-strip{
+    display:flex; align-items:stretch;
+    background:var(--panel-soft); border-bottom:1px solid var(--border-soft);
+    min-height:34px; overflow-x:auto;
+  }
+  .tab-strip:empty::before{content:"No file open"; color:var(--muted-2); font-size:var(--fs-sm); padding:var(--s-2) var(--s-4)}
+  .tab-item{
+    display:flex; align-items:center; gap:var(--s-2);
+    padding:var(--s-2) var(--s-3);
+    border-right:1px solid var(--border-soft);
+    background:var(--panel-soft); color:var(--muted);
+    cursor:pointer; font:var(--fs-sm)/1.2 var(--sans);
+    white-space:nowrap;
+  }
+  .tab-item:hover{background:var(--panel)}
+  .tab-item.active{background:var(--bg); color:var(--fg); border-bottom:2px solid var(--accent); margin-bottom:-1px}
+  .tab-close{
+    border:none; background:transparent; color:var(--muted-2);
+    width:18px; height:18px; border-radius:var(--r-sm); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tab-close:hover{background:var(--border-soft); color:var(--fg)}
+  .tab-dirty-dot{width:6px; height:6px; border-radius:50%; background:var(--accent)}
+
+  .editor-body{flex:1; overflow:auto; padding:var(--s-5) var(--s-7)}
+
+  .schema-panel{
+    background:var(--panel); border-left:1px solid var(--border-soft);
+    padding:var(--s-3); overflow:auto;
+    display:flex; flex-direction:column;
+  }
+  .schema-panel.hidden{display:none}
+
+  .status-bar{
+    position:fixed; bottom:0; left:0; right:0;
+    height:26px; padding:0 var(--s-5);
+    display:flex; align-items:center;
+    background:var(--panel); border-top:1px solid var(--border-soft);
+    font:var(--fs-sm)/1 var(--sans); color:var(--muted); z-index:50;
+  }
+
+  /* Hide schema column when toggled */
+  .shell.schema-hidden{grid-template-columns:48px 260px 1fr}
+  .shell.schema-hidden .schema-panel{display:none}
+
+  /* Responsive: collapse side bar on small screens */
+  @media (max-width: 800px){
+    .shell{grid-template-columns:48px 1fr}
+    .side-bar{position:fixed; top:48px; left:48px; bottom:26px; width:260px; z-index:40; box-shadow:var(--shadow-md)}
+    .side-bar.collapsed{display:none}
+    .schema-panel{display:none}
+  }
 
   /* File tree (sits inside .side-section) */
   .file-tree{display:flex; flex-direction:column; gap:2px}
@@ -607,12 +695,6 @@
   .mr-meta{color:var(--muted); font-size:var(--fs-sm)}
   .mr-btns{display:flex; gap:var(--s-2)}
   .modal-input{width:100%; padding:var(--s-3); border:1px solid var(--border); border-radius:var(--r-sm); margin-top:var(--s-2)}
-  .status-bar{
-    position:fixed; bottom:0; left:0; right:0;
-    background:var(--panel); border-top:1px solid var(--border-soft);
-    padding:var(--s-2) var(--s-7); font:var(--fs-sm)/var(--lh-sm) var(--sans);
-    color:var(--muted); z-index:50;
-  }
 
   /* ---------- Command Palette / Quick Open ---------- */
   .palette-overlay{
@@ -649,152 +731,160 @@
 </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
-      <div class="brand-row">
-        <h1><span class="accent-dot"></span>JSON / JSONL Viewer</h1>
-        <span class="chip" id="stats">No file loaded</span>
-        <span class="dirty-badge" id="dirtyBadge"><span class="dot"></span><span id="dirtyCount">0 modified</span></span>
-        <button class="chip project-chip" id="projectChip" title="Switch project">Untitled &#x25BE;</button>
-        <div style="flex:1"></div>
-        <div class="controls">
-          <button class="btn ghost" id="settingsBtn" title="Settings">&#x2699;</button>
-          <label class="file-btn" title="Open a .json / .jsonl / .txt / .log file">
-            Open
-            <input class="file-input" id="fileInput" type="file" multiple accept=".jsonl,.json,.txt,.log" />
-          </label>
-          <button class="btn" id="exportBtn" title="Download visible (filtered, non-excluded) items as JSONL">Export</button>
-          <button class="btn primary" id="saveBtn" title="Download all items (with edits) in original format (Ctrl+S)">Save</button>
-        </div>
-      </div>
-      <div class="controls-row">
-        <input id="search" class="search" type="search" placeholder="Filter (text match) — press / to focus" />
-
-        <div class="control-group" title="Sort items">
-          <label for="sortSel">Sort</label>
-          <select class="select" id="sortSel">
-            <option value="default">file order</option>
-            <option value="tokens-desc">tokens ↓</option>
-            <option value="tokens-asc">tokens ↑</option>
-            <option value="chars-desc">chars ↓</option>
-            <option value="chars-asc">chars ↑</option>
-          </select>
-        </div>
-
-        <div class="control-group" title="Filter by token count range">
-          <label>Tokens</label>
-          <input class="num-input" id="minTokens" type="number" min="0" placeholder="min" />
-          <span style="color:var(--muted-2)">–</span>
-          <input class="num-input" id="maxTokens" type="number" min="0" placeholder="max" />
-        </div>
-
-        <span class="divider"></span>
-
-        <button class="btn ghost" id="expandAll" title="Expand all (E)">Expand</button>
-        <button class="btn ghost" id="collapseAll" title="Collapse all (C)">Collapse</button>
-
-        <span class="divider"></span>
-
-        <label class="switch" title="When ON, render '\n' inside string values as real line breaks">
-          <span>Newlines</span>
-          <input id="nlToggle" type="checkbox" checked />
-        </label>
-
-        <label class="switch" title="When ON, render string values + chat content as Markdown">
-          <span>Markdown</span>
-          <input id="mdToggle" type="checkbox" />
-        </label>
-
-        <label class="switch" title="Edit mode: show + / × on rows. Double-click any value to edit (works regardless).">
-          <span>Edit</span>
-          <input id="editToggle" type="checkbox" />
-        </label>
-
-        <label class="switch" title="Quick Copy: click value=copy JSON value; click key=copy key; Alt-click=copy JSON path; Ctrl/Cmd+click summary=copy node JSON">
-          <span>Quick Copy</span>
-          <input id="quickCopyToggle" type="checkbox" />
-        </label>
-
-        <label class="switch" title="Colorize each key name with its own color">
-          <span>Colorize</span>
-          <input id="colorizeToggle" type="checkbox" />
-        </label>
-
-        <label class="switch" title="Toggle dark mode">
-          <span>Dark</span>
-          <input id="themeToggle" type="checkbox" />
-        </label>
-      </div>
+  <header class="topbar">
+    <h1><span class="accent-dot"></span>JSONL Viewer</h1>
+    <button class="chip project-chip" id="projectChip" title="Switch project">Untitled &#x25BE;</button>
+    <span class="chip" id="stats">No file loaded</span>
+    <span class="dirty-badge" id="dirtyBadge"><span class="dot"></span><span id="dirtyCount">0 modified</span></span>
+    <div style="flex:1"></div>
+    <div class="controls">
+      <button class="btn ghost" id="settingsBtn" title="Settings">&#x2699;</button>
+      <label class="file-btn" title="Open file(s)">
+        Open
+        <input class="file-input" id="fileInput" type="file" multiple accept=".jsonl,.json,.txt,.log" />
+      </label>
+      <button class="btn" id="exportBtn" title="Export visible items as JSONL">Export</button>
+      <button class="btn primary" id="saveBtn" title="Save (Ctrl+S)">Save</button>
     </div>
   </header>
 
-  <main class="layout">
-    <aside class="left-col" id="filesPanel">
-      <div class="side-section">
-        <div class="side-title">Files</div>
+  <div class="shell">
+    <!-- Activity bar -->
+    <nav class="activity-bar" id="activityBar">
+      <button class="act-btn active" data-panel="files" title="Files (Ctrl+B)">&#x1F4C1;</button>
+      <button class="act-btn" data-panel="projects" title="Projects">&#x1F5C2;</button>
+      <button class="act-btn" data-panel="search" title="Search">&#x1F50D;</button>
+      <button class="act-btn" data-panel="settings" title="Settings">&#x2699;</button>
+      <div style="flex:1"></div>
+      <button class="act-btn" data-panel="schema" title="Schema (toggle right panel)">{ }</button>
+    </nav>
+
+    <!-- Side bar — panels switch by activity -->
+    <aside class="side-bar" id="sideBar">
+
+      <!-- Files panel -->
+      <div class="side-panel active" data-panel="files">
+        <div class="side-panel-header">EXPLORER</div>
         <div class="file-tree" id="fileTree">
-          <div class="file-tree-empty">No files open. Drop here or use the buttons below.</div>
+          <div class="file-tree-empty">No files open. Drop or open.</div>
         </div>
         <div class="files-toolbar">
-          <button class="mini-btn" id="addFilesBtn" title="Open one or more files">+ Files</button>
-          <button class="mini-btn" id="addFolderBtn" title="Open a whole folder (Chrome/Edge/Safari)">+ Folder</button>
+          <button class="mini-btn" id="addFilesBtn" title="Open files">+ Files</button>
+          <button class="mini-btn" id="addFolderBtn" title="Open folder">+ Folder</button>
         </div>
         <input class="file-input" id="filesInput" type="file" multiple accept=".jsonl,.json,.txt,.log" />
         <input class="file-input" id="folderInput" type="file" webkitdirectory directory />
-        <div class="right-hint">Drop multiple files or a folder here. Click a file to switch. Schema for the active file appears on the right.</div>
+      </div>
+
+      <!-- Projects panel -->
+      <div class="side-panel" data-panel="projects">
+        <div class="side-panel-header">PROJECTS</div>
+        <div class="projects-list" id="projectsList">Loading&#x2026;</div>
+        <div class="projects-toolbar">
+          <button class="mini-btn" id="newProjectBtn" title="New project">+ New</button>
+          <button class="mini-btn" id="manageProjectsBtn" title="Manage projects">Manage&#x2026;</button>
+        </div>
+      </div>
+
+      <!-- Search panel -->
+      <div class="side-panel" data-panel="search">
+        <div class="side-panel-header">SEARCH</div>
+        <input id="search" class="search" type="search" placeholder="Filter (text match) &#x2014; / to focus" />
+        <div class="search-controls">
+          <div class="control-group">
+            <label for="sortSel">Sort</label>
+            <select class="select" id="sortSel">
+              <option value="default">file order</option>
+              <option value="tokens-desc">tokens &darr;</option>
+              <option value="tokens-asc">tokens &uarr;</option>
+              <option value="chars-desc">chars &darr;</option>
+              <option value="chars-asc">chars &uarr;</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Tokens range</label>
+            <div style="display:flex; gap:6px">
+              <input class="num-input" id="minTokens" type="number" min="0" placeholder="min" />
+              <input class="num-input" id="maxTokens" type="number" min="0" placeholder="max" />
+            </div>
+          </div>
+          <div class="control-group" style="flex-direction:row; gap:6px">
+            <button class="mini-btn" id="expandAll" title="Expand all (E)">Expand all</button>
+            <button class="mini-btn" id="collapseAll" title="Collapse all (C)">Collapse all</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings panel -->
+      <div class="side-panel" data-panel="settings">
+        <div class="side-panel-header">SETTINGS</div>
+        <label class="switch" title="Render \n as real line breaks">
+          <input id="nlToggle" type="checkbox" checked />
+          <span>Newlines</span>
+        </label>
+        <label class="switch" title="Render string values as Markdown">
+          <input id="mdToggle" type="checkbox" />
+          <span>Markdown</span>
+        </label>
+        <label class="switch" title="Edit mode (+ / × hovers)">
+          <input id="editToggle" type="checkbox" />
+          <span>Edit mode</span>
+        </label>
+        <label class="switch" title="Click value=copy; click key=copy key; Alt+click=copy path">
+          <input id="quickCopyToggle" type="checkbox" />
+          <span>Quick Copy</span>
+        </label>
+        <label class="switch" title="Color-code key names">
+          <input id="colorizeToggle" type="checkbox" />
+          <span>Colorize keys</span>
+        </label>
+        <label class="switch" title="Dark theme">
+          <input id="themeToggle" type="checkbox" />
+          <span>Dark mode</span>
+        </label>
+        <div style="margin-top:12px">
+          <button class="mini-btn" id="openSettingsModalBtn">Advanced settings&#x2026;</button>
+        </div>
       </div>
     </aside>
 
-    <section class="main-col">
-      <div id="drop" class="drop">
-        <div class="drop-main"><strong>Drag &amp; drop</strong> a <code>.json</code> or <code>.jsonl</code> file here, or click <em>Open</em>.</div>
-        <div class="drop-sub muted" style="margin-top:4px">
-          JSON: arrays → items as cards; object/primitive → single card. If full-JSON parse fails, falls back to JSONL mode.
+    <!-- Editor area -->
+    <main class="editor">
+      <div class="tab-strip" id="tabStrip"></div>
+      <div class="editor-body">
+        <div id="drop" class="drop">
+          <div class="drop-main"><strong>Drag &amp; drop</strong> a <code>.json</code> or <code>.jsonl</code> file here, or click <em>Open</em>.</div>
+          <div class="drop-sub muted" style="margin-top:4px">
+            JSON arrays &#x2192; cards. JSONL &#x2192; cards per line.
+          </div>
         </div>
-        <div class="drop-tips muted" style="margin-top:6px">
-          <strong>Edit:</strong> double-click any value to edit. Toggle <em>Edit</em> for ＋／✕ row actions.
-          <strong>Quick Copy:</strong> click value = JSON value; click key = key name; <kbd>Alt</kbd>+click = JSON path.
+        <div class="add-row" id="addRow" style="display:none">
+          <button class="btn ghost" id="addItemBtn" title="Append a new blank item">+ New item</button>
+        </div>
+        <div class="list" id="list"></div>
+        <div class="load-more" id="loadMore"></div>
+        <div class="footer" id="footer">
+          <span id="filterInfo"></span>
+          <span class="credit">By <a href="https://github.com/ibndias" target="_blank" rel="noopener">ibndias</a></span>
         </div>
       </div>
-      <div class="add-row" id="addRow" style="display:none">
-        <button class="btn ghost" id="addItemBtn" title="Append a new blank item">+ New item</button>
-      </div>
-      <div class="list" id="list"></div>
-      <div class="load-more" id="loadMore"></div>
-      <div class="footer" id="footer">
-        <span id="filterInfo"></span>
-        <span class="credit">JSON/JSONL Viewer — by <a href="https://github.com/ibndias" target="_blank" rel="noopener"><strong>ibndias</strong></a></span>
-      </div>
-    </section>
+    </main>
 
-    <aside class="right-col sidebar" id="sidebar">
-      <div class="side-section">
-        <div class="side-title">Schema · top-level keys</div>
-        <div class="side-keys" id="schemaKeys">
-          <div class="side-empty">Load a file to see keys.</div>
-        </div>
+    <!-- Schema panel -->
+    <aside class="schema-panel" id="sidebar">
+      <div class="side-panel-header">SCHEMA</div>
+      <div class="side-keys" id="schemaKeys">
+        <div class="side-empty">Load a file to see keys.</div>
       </div>
       <div class="side-section" id="sideActions" style="display:none">
         <button class="btn-link" id="clearKeysBtn">clear key filters</button>
       </div>
-      <div class="side-section">
-        <div class="side-title">Tips</div>
-        <div class="kbd-hint">
-          <div><kbd>/</kbd> focus search</div>
-          <div><kbd>n</kbd>/<kbd>p</kbd> next / prev item</div>
-          <div><kbd>e</kbd>/<kbd>c</kbd> expand / collapse active</div>
-          <div><kbd>x</kbd> toggle exclude active</div>
-          <div><kbd>Del</kbd> delete active item</div>
-          <div><kbd>Ctrl</kbd>+<kbd>S</kbd> save file</div>
-          <div>dbl-click value to edit</div>
-          <div><kbd>Esc</kbd> cancel edit / clear search</div>
-        </div>
-      </div>
     </aside>
-  </main>
+  </div>
 
   <div class="status-bar" id="statusBar"></div>
-  <div id="toast" class="toast"></div>
+
+  <!-- Modal (unchanged) -->
   <div id="modal" class="modal-bg" style="display:none">
     <div class="modal" role="dialog" aria-modal="true">
       <h3 id="modalTitle">Confirm</h3>
@@ -806,6 +896,8 @@
     </div>
   </div>
 
-<script type="module" src="js/main.js?v=p7"></script>
+  <div class="toast" id="toast"></div>
+
+<script type="module" src="js/main.js?v=p8"></script>
 </body>
 </html>

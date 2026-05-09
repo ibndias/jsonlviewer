@@ -37,6 +37,7 @@ import {
 import { bootProjects } from './projects.js';
 import { initProjectChip, initStatusBar, refreshStatusBar, refreshChip, openSettingsModal } from './projects-ui.js';
 import { openCommandPalette, openQuickOpen } from './palette.js';
+import { initShell, renderTabStrip, refreshProjectsPanel } from './shell.js';
 
 // Test-harness window hooks (only readable in test mode but cheap to attach):
 window.state = state;
@@ -46,6 +47,7 @@ window.__files_getActiveFileRow = _getActiveFileRowImport;
 window.__files_persistActiveFile = _persistActiveFileImport;
 window.__projectsui_refreshChip = refreshChip;
 window.__projectsui_refreshStatusBar = refreshStatusBar;
+window.__projectsui_openSettings = openSettingsModal;
 
 /* Add new item */
 $addItemBtn.addEventListener('click', () => {
@@ -132,6 +134,7 @@ $clearKeys.addEventListener('click', () => {
     e.preventDefault(); e.stopPropagation();
     if (ev === 'drop'){
       handleDrop(e);
+      window.__shell_renderTabStrip?.();
     }
     $drop.classList.remove('active');
   });
@@ -145,18 +148,21 @@ if ($file){
     const fs = e.target.files;
     if (fs && fs.length) await loadFiles(fs);
     $file.value = '';
+    window.__shell_renderTabStrip?.();
   });
 }
 if ($filesInput){
   $filesInput.addEventListener('change', async (e) => {
     await loadFiles(e.target.files);
     $filesInput.value = '';
+    window.__shell_renderTabStrip?.();
   });
 }
 if ($folderInput){
   $folderInput.addEventListener('change', async (e) => {
     await loadFiles(e.target.files);
     $folderInput.value = '';
+    window.__shell_renderTabStrip?.();
   });
 }
 $drop.addEventListener('click', () => $filesInput ? $filesInput.click() : $file.click());
@@ -289,6 +295,13 @@ document.addEventListener('keydown', (e) => {
     openQuickOpen();
     return;
   }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'b'){
+    e.preventDefault();
+    // Toggle side bar visibility (mobile-friendly).
+    const sb = document.getElementById('sideBar');
+    if (sb) sb.classList.toggle('collapsed');
+    return;
+  }
   if (e.key === 'Escape'){
     if (document.activeElement === $search){
       if ($search.value){
@@ -413,6 +426,7 @@ if (!_isTestMode){
     }
     initProjectChip();
     initStatusBar();
+    initShell();
   }
   updateStats();
   renderSidebar();
