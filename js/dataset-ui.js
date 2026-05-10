@@ -1914,28 +1914,37 @@ export function updateCardReviewUI(item){
   }
   if (state.lastAudit){
     const stale = state.lastAudit.stale ? ' audit-stale' : '';
+    const mkBadge = (cls, iconName, label, title, onClick) => {
+      const b = el('button', `audit-badge ${cls}${stale}`);
+      const ic = document.createElement('i'); ic.setAttribute('data-lucide', iconName);
+      b.append(ic, document.createTextNode(' ' + label));
+      b.title = title;
+      b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
+      return b;
+    };
     const lints = state.lastAudit.lint?.get(item.origIdx) || [];
     if (lints.length){
       const sev = lints.some(i => i.sev === 'error') ? 'error' : 'warn';
-      const b = el('button', `audit-badge audit-${sev}${stale}`, `⚠ ${lints.length} lint`);
-      b.title = (state.lastAudit.stale ? '(audit stale) ' : '') + 'Click to expand: ' + lints.slice(0,4).map(i => i.code).join(', ');
-      b.addEventListener('click', (e) => { e.stopPropagation(); toggleInlineIssues(item, 'lint'); });
-      meta.append(b);
+      meta.append(mkBadge(`audit-${sev}`, sev === 'error' ? 'alert-octagon' : 'alert-triangle',
+        `${lints.length} lint`,
+        (state.lastAudit.stale ? '(audit stale) ' : '') + 'Click to expand: ' + lints.slice(0,4).map(i => i.code).join(', '),
+        () => toggleInlineIssues(item, 'lint')));
     }
     const piiHits = state.lastAudit.pii?.get(item.origIdx);
     if (piiHits && piiHits.length){
       const types = [...new Set(piiHits.map(h => h.id))];
-      const b = el('button', `audit-badge audit-pii${stale}`, `🛡 ${piiHits.length} PII`);
-      b.title = (state.lastAudit.stale ? '(audit stale) ' : '') + 'Click to expand: ' + types.join(', ');
-      b.addEventListener('click', (e) => { e.stopPropagation(); toggleInlineIssues(item, 'pii'); });
-      meta.append(b);
+      meta.append(mkBadge('audit-pii', 'shield-alert',
+        `${piiHits.length} PII`,
+        (state.lastAudit.stale ? '(audit stale) ' : '') + 'Click to expand: ' + types.join(', '),
+        () => toggleInlineIssues(item, 'pii')));
     }
     if (state.lastAudit.dups?.has(item.origIdx)){
-      const b = el('button', `audit-badge audit-dup${stale}`, '◯ dup');
-      b.title = 'Click to find this row\'s cluster';
-      b.addEventListener('click', (e) => { e.stopPropagation(); openDedup(); });
-      meta.append(b);
+      meta.append(mkBadge('audit-dup', 'copy',
+        'dup',
+        'Click to find this row\'s cluster',
+        () => openDedup()));
     }
+    try { window.lucide?.createIcons?.(); } catch {}
   }
 }
 
@@ -2229,7 +2238,10 @@ export function renderDatasetPanel(){
 
   // Big audit button
   const auditBtn = el('button','btn primary ds-audit-btn');
-  auditBtn.append(el('span','ds-panel-icon','⚙'));
+  const auditIcon = document.createElement('i');
+  auditIcon.setAttribute('data-lucide', 'gauge');
+  auditIcon.className = 'ds-panel-icon';
+  auditBtn.append(auditIcon);
   auditBtn.append(el('span',null,'Run all audits'));
   auditBtn.disabled = !hasFile;
   auditBtn.addEventListener('click', () => openAuditOverview());
@@ -2243,7 +2255,10 @@ export function renderDatasetPanel(){
   // Onboarding nudge: file loaded but never audited
   if (!state.lastAudit){
     const nudge = el('div','ds-onboarding');
-    nudge.append(el('span','ds-onboarding-arrow','↑'));
+    const arrow = document.createElement('i');
+    arrow.setAttribute('data-lucide','arrow-up');
+    arrow.className = 'ds-onboarding-arrow';
+    nudge.append(arrow);
     const msg = el('div','ds-onboarding-msg');
     msg.append(document.createTextNode('Run audits to see quality score, duplicates, PII, and lint issues. Or press '));
     msg.append(el('kbd','ds-kbd','Shift + A'));
@@ -2334,13 +2349,19 @@ export function renderDatasetPanel(){
     live.append(onlyBtn);
     root.append(live);
 
-    // Score card actions: export + (densities toggle moved here)
+    // Score card actions: export + (density toggle moved here)
     const scoreActions = el('div','ds-score-actions');
-    const exportBtn = el('button','btn-link ds-score-action','⤓ Export report');
+    const exportBtn = el('button','btn-link ds-score-action');
+    const exportIcon = document.createElement('i');
+    exportIcon.setAttribute('data-lucide', 'download');
+    exportBtn.append(exportIcon, document.createTextNode(' Export report'));
     exportBtn.addEventListener('click', exportAuditReport);
-    const densBtn = el('button','btn-link ds-score-action');
+
     const isCompact = localStorage.getItem('jsonl_viewer_dataset_density') === 'compact';
-    densBtn.textContent = isCompact ? '↕ Regular density' : '⇲ Compact density';
+    const densBtn = el('button','btn-link ds-score-action');
+    const densIcon = document.createElement('i');
+    densIcon.setAttribute('data-lucide', isCompact ? 'maximize-2' : 'minimize-2');
+    densBtn.append(densIcon, document.createTextNode(isCompact ? ' Regular density' : ' Compact density'));
     densBtn.addEventListener('click', () => {
       const next = isCompact ? 'regular' : 'compact';
       localStorage.setItem('jsonl_viewer_dataset_density', next);
@@ -2356,7 +2377,10 @@ export function renderDatasetPanel(){
   if (stack.length){
     const top = stack[stack.length - 1];
     const u = el('button','mini-btn ds-panel-btn ds-undo-btn');
-    u.append(el('span','ds-panel-icon','↶'));
+    const undoIc = document.createElement('i');
+    undoIc.setAttribute('data-lucide','undo-2');
+    undoIc.className = 'ds-panel-icon';
+    u.append(undoIc);
     u.append(el('span',null, `Undo: ${top.label}` + (stack.length > 1 ? ` (${stack.length} step${stack.length===1?'':'s'})` : '')));
     u.title = `Captured ${new Date(top.ts).toLocaleTimeString()}\nUndo stack: ${stack.length} step${stack.length===1?'':'s'} (max ${UNDO_STACK_LIMIT})`;
     u.addEventListener('click', () => undoBulk());
@@ -2364,22 +2388,22 @@ export function renderDatasetPanel(){
   }
 
   root.append(makeSection('audit', 'Audit', [
-    ['▦', 'View profile + stats', openFormatProfile],
-    ['✓', 'Lint dataset', openLint],
-    ['§', 'Validate schema', openSchemaValidate],
+    ['bar-chart-3',    'View profile + stats', openFormatProfile],
+    ['check-circle-2', 'Lint dataset',         openLint],
+    ['file-check',     'Validate schema',      openSchemaValidate],
   ]));
   root.append(makeSection('curate', 'Curate', [
-    ['◯', 'Find duplicates', openDedup],
-    ['★', 'Scrub PII', openPIIScrub],
-    ['⤳', 'Transform rows', openBulkTransform],
+    ['copy',           'Find duplicates',      openDedup],
+    ['shield',         'Scrub PII',            openPIIScrub],
+    ['wand-2',         'Transform rows',       openBulkTransform],
   ]));
   root.append(makeSection('workflow', 'Workflow', [
-    ['☑', 'Tag + review', openTagging],
-    ['✂', 'Sample + split', openSplit],
-    ['⇄', 'Convert format', openConvert],
-    ['⌕', 'Check leakage', openLeakage],
-    ['⊟', 'Compare files', openCompare],
-    ['Δ', 'Diff active row', openDiffActive],
+    ['list-checks',    'Tag + review',         openTagging],
+    ['scissors',       'Sample + split',       openSplit],
+    ['arrow-left-right','Convert format',      openConvert],
+    ['search-check',   'Check leakage',        openLeakage],
+    ['split-square-vertical', 'Compare files', openCompare],
+    ['git-compare',    'Diff active row',      openDiffActive],
   ]));
 
   // Persist filters whenever rendered
@@ -2476,6 +2500,8 @@ export function renderDatasetPanel(){
   root.append(counts);
 
   root.append(el('div','ds-panel-hint','a / r / t · review · d · diff · ? · help'));
+  // Convert any data-lucide placeholders into rendered SVG icons
+  try { window.lucide?.createIcons?.(); } catch {}
 }
 
 // Apply persisted density on first render
@@ -2751,7 +2777,10 @@ function makeInspector(item){
 
 function panelBtn(icon, label, action){
   const b = el('button','mini-btn ds-panel-btn');
-  b.append(el('span','ds-panel-icon', icon));
+  const i = document.createElement('i');
+  i.setAttribute('data-lucide', icon);
+  i.className = 'ds-panel-icon';
+  b.append(i);
   b.append(el('span',null, label));
   b.addEventListener('click', action);
   return b;

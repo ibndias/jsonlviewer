@@ -1191,7 +1191,13 @@
     margin:var(--s-2) 0;
   }
   .ds-audit-btn[disabled]{opacity:.45; cursor:not-allowed}
-  .ds-panel-icon{display:inline-flex; width:18px; justify-content:center; color:var(--muted)}
+  .ds-panel-icon{display:inline-flex; width:18px; height:18px; align-items:center; justify-content:center; color:var(--muted)}
+  .ds-panel-icon svg, .ds-panel-icon[data-lucide]{width:16px; height:16px; stroke-width:1.75}
+  .ds-audit-btn .ds-panel-icon{color:#FBFAF5}
+  .ds-audit-btn .ds-panel-icon svg{width:18px; height:18px}
+  .ds-onboarding-arrow svg{width:18px; height:18px}
+  .audit-badge svg{width:13px; height:13px; vertical-align:-2px; stroke-width:2}
+  .ds-score-action svg{width:13px; height:13px; vertical-align:-2px; stroke-width:1.75; margin-right:2px}
   .ds-panel-score{
     display:flex; align-items:center; gap:var(--s-3);
     padding:var(--s-3); margin-top:var(--s-2);
