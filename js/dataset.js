@@ -489,6 +489,34 @@ export function splitDataset(items, ratios = [0.8, 0.1, 0.1], seed = 1){
   return out;
 }
 
+// Stratified split: keep the same per-stratum proportion in each output bucket.
+// `keyFn(item)` returns the stratum label for an item (e.g. it.review).
+// Items with no key are bucketed under '__none__'.
+export function splitStratified(items, ratios = [0.8, 0.1, 0.1], seed = 1, keyFn){
+  const live = items.filter(it => !it.deleted);
+  const groups = new Map();
+  for (const it of live){
+    const k = keyFn(it) ?? '__none__';
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(it.origIdx);
+  }
+  const out = ratios.map(() => []);
+  for (const [k, arr] of groups){
+    const shuffled = shuffle(arr, seed + (typeof k === 'string' ? fnv1a(k) : 0));
+    const total = shuffled.length;
+    const sum = ratios.reduce((a,b) => a+b, 0) || 1;
+    let consumed = 0;
+    for (let i = 0; i < ratios.length; i++){
+      const take = i === ratios.length - 1
+        ? shuffled.length - consumed
+        : Math.floor(total * ratios[i] / sum);
+      out[i].push(...shuffled.slice(consumed, consumed + take));
+      consumed += take;
+    }
+  }
+  return out;
+}
+
 export function sample(items, n, seed = 1){
   const live = items.filter(it => !it.deleted);
   const idxs = shuffle(live.map(it => it.origIdx), seed);
@@ -814,7 +842,7 @@ if (typeof window !== 'undefined'){
     PII_PATTERNS, scanPII, redactPII, redactJSON, luhnOk,
     lintRow, lintAll,
     shareGPTToOpenAI, openAIToShareGPT, alpacaToOpenAI, completionToOpenAI,
-    splitDataset, sample, mulberry32,
+    splitDataset, splitStratified, sample, mulberry32,
     leakageCheck, validateAgainstSchema,
     applyOps, dryRunOps,
     diffJSON,

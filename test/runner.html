@@ -863,6 +863,23 @@
     assert(out.messages[0].content.includes('with y'));
   });
 
+  test('dataset: splitStratified preserves stratum proportions', async () => {
+    await reloadFrame();
+    const D = fwin().__dataset;
+    // 60 'a' rows + 40 'b' rows
+    const items = [
+      ...Array.from({length:60}, (_, i) => ({origIdx:i, deleted:false, t:'a'})),
+      ...Array.from({length:40}, (_, i) => ({origIdx:60+i, deleted:false, t:'b'})),
+    ];
+    const splits = D.splitStratified(items, [0.8, 0.1, 0.1], 7, it => it.t);
+    // Train should have ~80% of each: 48 'a' + 32 'b' = 80
+    const trainAs = splits[0].filter(oi => items[oi].t === 'a').length;
+    const trainBs = splits[0].filter(oi => items[oi].t === 'b').length;
+    assert(trainAs >= 47 && trainAs <= 49, `expected 48 'a' in train, got ${trainAs}`);
+    assert(trainBs >= 31 && trainBs <= 33, `expected 32 'b' in train, got ${trainBs}`);
+    assertEq(splits[0].length + splits[1].length + splits[2].length, 100);
+  });
+
   test('dataset: splitDataset deterministic + sums to total', async () => {
     await reloadFrame();
     const D = fwin().__dataset;

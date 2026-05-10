@@ -1254,6 +1254,15 @@
   .ds-inspector-actions{display:flex; flex-wrap:wrap; gap:4px}
   .ds-stale-chip{cursor:pointer; border:0; font-family:var(--mono)}
   .ds-stale-chip:hover{filter:brightness(1.1)}
+
+  /* Density toggle */
+  .ds-panel-density{padding-top:var(--s-2)}
+  body.ds-compact .ds-panel-btn{padding:3px 6px; font-size:var(--fs-xs)}
+  body.ds-compact .ds-panel-h{font-size:var(--fs-xs); padding:2px 0}
+  body.ds-compact .ds-panel-sec{padding-bottom:var(--s-2)}
+  body.ds-compact .ds-panel-score{padding:var(--s-2)}
+  body.ds-compact .ds-panel-ring{width:32px; height:32px}
+  body.ds-compact .ds-inspector-body{gap:4px; padding:var(--s-1)}
   .ds-panel-ring::before{content:''; position:absolute; inset:3px; border-radius:50%; background:var(--panel)}
   .ds-panel-ring-num{position:relative; font:600 var(--fs-base)/1 var(--serif); color:var(--fg)}
   .ds-panel-score-txt{display:flex; flex-direction:column; gap:0; line-height:1.2}

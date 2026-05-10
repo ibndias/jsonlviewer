@@ -11,7 +11,7 @@ import {
   exactDedup, nearDedup, rowText, rowAssistantText,
   redactJSON, redactPII, scanPII, PII_PATTERNS,
   shareGPTToOpenAI, openAIToShareGPT, alpacaToOpenAI, completionToOpenAI,
-  splitDataset, sample,
+  splitDataset, splitStratified, sample,
   leakageCheck, validateAgainstSchema, detectRowFormat, extractTurns,
   applyOps, dryRunOps, diffJSON,
 } from './dataset.js';
@@ -1160,6 +1160,13 @@ export function openSplit(){
   ctrls.append(el('label',null,'Seed'));
   const sd = document.createElement('input'); sd.type='number'; sd.value='1'; sd.className='num-input';
   ctrls.append(sd);
+  ctrls.append(el('label',null,'Stratify by'));
+  const strat = document.createElement('select'); strat.className='select';
+  for (const o of [['','none'],['review','review state'],['firstRole','first role'],['firstTag','first tag']]){
+    const opt = document.createElement('option'); opt.value = o[0]; opt.textContent = o[1];
+    strat.append(opt);
+  }
+  ctrls.append(strat);
   const runBtn = el('button','btn primary','Split + download');
   ctrls.append(runBtn);
   wrap.append(ctrls);
@@ -1196,14 +1203,30 @@ export function openSplit(){
     if (sum <= 0){ showToast('Ratios must sum to > 0', 'err'); return; }
     if (!liveItems().length){ showToast('No live rows', 'err'); return; }
     const seed = +sd.value || 1;
-    const splits = splitDataset(state.items, ratios, seed);
+    const stratKey = strat.value;
+    let splits;
+    if (stratKey){
+      const keyFn = (it) => {
+        if (stratKey === 'review') return it.review || 'none';
+        if (stratKey === 'firstRole'){
+          if (it.error) return 'parse-error';
+          const turns = extractTurns(it.parsed);
+          return turns[0]?.role ?? 'unknown';
+        }
+        if (stratKey === 'firstTag') return (it.tags && it.tags[0]) || 'untagged';
+        return 'all';
+      };
+      splits = splitStratified(state.items, ratios, seed, keyFn);
+    } else {
+      splits = splitDataset(state.items, ratios, seed);
+    }
     const labels = ['train', 'val', 'test'];
     splits.forEach((idxs, i) => {
       if (!idxs.length) return;
       const lines = idxs.map(oi => exportRawFor(state.items[oi])).filter(Boolean);
       downloadText(`${baseName()}-${labels[i]}.jsonl`, lines.join('\n') + '\n', 'application/jsonl');
     });
-    showToast(`Split: ${splits.map((s,i)=>`${labels[i]}=${s.length}`).join(' • ')}`);
+    showToast(`Split${stratKey ? ' (stratified by ' + stratKey + ')' : ''}: ${splits.map((s,i)=>`${labels[i]}=${s.length}`).join(' • ')}`);
   });
 
   sampleBtn.addEventListener('click', () => {
@@ -1993,8 +2016,30 @@ export function renderDatasetPanel(){
                 el('span','ds-chip', `? ${t}`));
   root.append(counts);
 
-  root.append(el('div','ds-panel-hint','a / r / t · review · d · diff'));
+  // Density toggle (compact panel)
+  const densSec = el('div','ds-panel-density');
+  const densBtn = el('button','mini-btn ds-density-btn');
+  const isCompact = localStorage.getItem('jsonl_viewer_dataset_density') === 'compact';
+  densBtn.textContent = isCompact ? 'Regular density' : 'Compact density';
+  densBtn.addEventListener('click', () => {
+    const next = isCompact ? 'regular' : 'compact';
+    localStorage.setItem('jsonl_viewer_dataset_density', next);
+    document.body.classList.toggle('ds-compact', next === 'compact');
+    renderDatasetPanel();
+  });
+  densSec.append(densBtn);
+  root.append(densSec);
+
+  root.append(el('div','ds-panel-hint','a / r / t · review · d · diff · ? · help'));
 }
+
+// Apply persisted density on first render
+(function initDensity(){
+  if (typeof window === 'undefined') return;
+  if (localStorage.getItem('jsonl_viewer_dataset_density') === 'compact'){
+    document.body.classList.add('ds-compact');
+  }
+})();
 
 function scoreBreakdownText(){
   const a = state.lastAudit;
