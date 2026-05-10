@@ -356,6 +356,11 @@ document.addEventListener('keydown', (e) => {
     if (sb) sb.classList.toggle('collapsed');
     return;
   }
+  if (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'a' && !isTypingInField(e.target)){
+    e.preventDefault();
+    window.__dataset_ui?.openAuditOverview?.();
+    return;
+  }
   if (e.key === 'Escape'){
     if (document.activeElement === $search){
       if ($search.value){

@@ -795,9 +795,7 @@ export function openPIIScrub(){
   scanBtn.addEventListener('click', () => renderPIIResults(result, enabled));
 
   redactBtn.addEventListener('click', async () => {
-    const ok = await confirmModal({title:'Redact all matched PII?',
-      body:'Replaces matches with tokens like <EMAIL>. Edits become unsaved (review before save). Undoable.',
-      okLabel:'Redact'});
+    const ok = await confirmRedactPreview(enabled);
     if (!ok) return;
     captureBulkUndo('Redact PII');
     let touched = 0, total = 0;
@@ -820,6 +818,56 @@ export function openPIIScrub(){
   });
 
   renderPIIResults(result, enabled);
+}
+
+function confirmRedactPreview(enabled){
+  return new Promise(resolve => {
+    const wrap = el('div','ds-section');
+    wrap.append(el('div','ds-row','Replaces matches with tokens like <EMAIL>. Edits become unsaved (Undoable).'));
+    // Compute preview for up to 3 affected rows
+    const previews = [];
+    let totalAffected = 0;
+    for (const it of liveItems()){
+      let n, before, after;
+      if (it.error){
+        before = it.rawText;
+        const r = redactPII(it.rawText, enabled);
+        n = r.count; after = r.text;
+      } else {
+        before = JSON.stringify(it.parsed, null, 2);
+        const [next, nn] = redactJSON(it.parsed, enabled);
+        n = nn; after = JSON.stringify(next, null, 2);
+      }
+      if (n){
+        totalAffected++;
+        if (previews.length < 3) previews.push({ origIdx: it.origIdx, fileIdx: it.fileIdx, before, after });
+      }
+    }
+    if (!totalAffected){
+      wrap.append(emptyState('No matches with the selected patterns.'));
+    } else {
+      wrap.append(el('div','ds-row', `${totalAffected} row${totalAffected===1?'':'s'} would be edited. Preview of first ${previews.length}:`));
+      for (const p of previews){
+        const cl = el('div','ds-cluster');
+        cl.append(el('div','ds-cluster-head', `Row #${p.fileIdx + 1}`));
+        cl.append(el('div','ds-row','BEFORE'));
+        cl.append(el('pre','ds-pre', p.before.slice(0, 800)));
+        cl.append(el('div','ds-row','AFTER'));
+        cl.append(el('pre','ds-pre', p.after.slice(0, 800)));
+        wrap.append(cl);
+      }
+    }
+
+    const cancelBtn = el('button','btn ghost','Cancel');
+    const okBtn = el('button','btn primary','Redact');
+    okBtn.disabled = !totalAffected;
+    const m = openDatasetModal('Confirm PII redaction', wrap, {
+      subtitle: `${totalAffected} row${totalAffected===1?'':'s'} affected`,
+      actions: [cancelBtn, okBtn]
+    });
+    cancelBtn.addEventListener('click', () => { m.close(); resolve(false); });
+    okBtn.addEventListener('click', () => { m.close(); resolve(true); });
+  });
 }
 
 function collectPIIHits(item, enabled){
@@ -2061,7 +2109,8 @@ export function openShortcutsCheatsheet(){
       ['Ctrl/⌘ + P', 'Quick open'],
       ['Ctrl/⌘ + ⇧ + P', 'Command palette'],
     ]],
-    ['Panels & help', [
+    ['Audit & panels', [
+      ['Shift + A', 'Run all audits'],
       ['i', 'Open Inspector for active row'],
       ['?', 'Show this cheatsheet'],
     ]],
