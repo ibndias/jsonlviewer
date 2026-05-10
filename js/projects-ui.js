@@ -284,5 +284,17 @@ export function refreshStatusBar(){
   if (!bar) return;
   const proj = getActiveProject();
   const fileCount = state.files.length;
-  bar.textContent = `${proj ? proj.name : 'Untitled'}  ·  ${fileCount} ${fileCount === 1 ? 'file' : 'files'}`;
+  bar.replaceChildren();
+  bar.append(document.createTextNode(`${proj ? proj.name : 'Untitled'}  ·  ${fileCount} ${fileCount === 1 ? 'file' : 'files'}`));
+  // Audit score chip
+  if (state.lastAudit && typeof state.lastAudit.score === 'number'){
+    const sc = state.lastAudit.score;
+    const tier = sc >= 80 ? 'good' : sc >= 60 ? 'warn' : 'bad';
+    const chip = document.createElement('span');
+    chip.className = `status-score score-${tier}` + (state.lastAudit.stale ? ' stale' : '');
+    chip.title = state.lastAudit.stale ? 'Audit stale — re-run to refresh' : `Quality score · ${new Date(state.lastAudit.ranAt).toLocaleTimeString()}`;
+    chip.textContent = `quality ${sc}`;
+    bar.append(document.createTextNode('  ·  '));
+    bar.append(chip);
+  }
 }

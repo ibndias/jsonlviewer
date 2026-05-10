@@ -1254,6 +1254,24 @@
   .ds-inspector-actions{display:flex; flex-wrap:wrap; gap:4px}
   .ds-stale-chip{cursor:pointer; border:0; font-family:var(--mono)}
   .ds-stale-chip:hover{filter:brightness(1.1)}
+  /* Status bar score chip */
+  .status-score{
+    display:inline-flex; align-items:center; gap:4px;
+    padding:1px 8px; border-radius:var(--r-pill);
+    font:600 var(--fs-xs)/1.4 var(--mono);
+    background:var(--chip); color:var(--fg);
+  }
+  .status-score.score-good{background:color-mix(in oklab, var(--ok) 22%, transparent); color:var(--ok)}
+  .status-score.score-warn{background:color-mix(in oklab, var(--warn) 22%, transparent); color:var(--warn)}
+  .status-score.score-bad {background:color-mix(in oklab, var(--err) 22%, transparent); color:var(--err)}
+  .status-score.stale{opacity:.55; text-decoration:line-through}
+
+  /* Drag-reorder op rows in bulk transform */
+  .ds-op-row{cursor:grab; user-select:none}
+  .ds-op-row.ds-op-dragging{opacity:.4}
+  .ds-op-row.ds-op-over{outline:2px dashed var(--accent); outline-offset:2px}
+  .ds-drag-grip{color:var(--muted-2); cursor:grab; font:600 16px/1 var(--mono); user-select:none}
+
   .ds-audit-only-chip{cursor:pointer; border:0; font-family:var(--sans)}
   .ds-audit-only-chip.active{background:var(--accent-soft); color:var(--accent)}
   .ds-audit-only-chip:hover{filter:brightness(1.05)}
@@ -1487,6 +1505,9 @@
           <div class="drop-main"><strong>Drag &amp; drop</strong> a <code>.json</code> or <code>.jsonl</code> file here, or click <em>Open</em>.</div>
           <div class="drop-sub muted" style="margin-top:4px">
             JSON arrays &#x2192; cards. JSONL &#x2192; cards per line.
+          </div>
+          <div class="drop-tips muted" style="margin-top:var(--s-3); font-size:var(--fs-sm)">
+            New here? <button class="btn-link" id="loadDemoBtn" type="button">Load demo dataset</button> to try Audit / PII scrub / Bulk transform.
           </div>
         </div>
         <div class="add-row" id="addRow" style="display:none">

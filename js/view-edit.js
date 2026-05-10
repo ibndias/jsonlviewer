@@ -20,6 +20,7 @@ export function markDirty(item){
   try {
     window.__dataset_ui?.renderDatasetPanel?.();
     window.__dataset_ui?.updateCardReviewUI?.(item);
+    window.__projectsui_refreshStatusBar?.();
   } catch {}
   persistActiveFile();
 }

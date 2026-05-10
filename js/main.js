@@ -194,7 +194,27 @@ if ($folderInput){
     window.__shell_renderTabStrip?.();
   });
 }
-$drop.addEventListener('click', () => $filesInput ? $filesInput.click() : $file.click());
+$drop.addEventListener('click', (e) => {
+  // If clicked inside the demo button, the button's own handler runs and we skip.
+  if (e.target.closest('#loadDemoBtn')) return;
+  if ($filesInput) $filesInput.click(); else $file.click();
+});
+const $loadDemoBtn = $('loadDemoBtn');
+if ($loadDemoBtn){
+  $loadDemoBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const demo = [
+      JSON.stringify({messages:[{role:'user',content:'Email me at alice@example.com about the report'},{role:'assistant',content:'Sure, I’ll send it.'}]}),
+      JSON.stringify({messages:[{role:'user',content:'Show how to parse JSON in JS'},{role:'assistant',content:'Use JSON.parse(text).'}]}),
+      JSON.stringify({messages:[{role:'user',content:'Show how to parse JSON in JS'},{role:'assistant',content:'Use JSON.parse(text).'}]}),
+      JSON.stringify({messages:[{role:'user',content:''},{role:'assistant',content:'reply'}]}),
+      JSON.stringify({messages:[{role:'user',content:'My API key is sk-aaaaaaaaaaaaaaaaaaaaa'},{role:'assistant',content:'Don’t share keys.'}]}),
+    ].join('\n');
+    const file = new File([demo], 'demo.jsonl', {type:'application/jsonl'});
+    const dt = new DataTransfer(); dt.items.add(file);
+    if ($filesInput){ $filesInput.files = dt.files; $filesInput.dispatchEvent(new Event('change',{bubbles:true})); }
+  });
+}
 const $addFilesBtn = $('addFilesBtn');
 const $addFolderBtn = $('addFolderBtn');
 if ($addFilesBtn) $addFilesBtn.addEventListener('click', () => $filesInput.click());

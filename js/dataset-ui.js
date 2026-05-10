@@ -379,6 +379,7 @@ export function runAuditSilent(){
   state.lastAudit.dominantPct = prof.dominantPct;
   pushScoreHistory();
   decorateAllCards();
+  try { window.__projectsui_refreshStatusBar?.(); } catch {}
 }
 
 function pushScoreHistory(){
@@ -1558,12 +1559,41 @@ export function openBulkTransform(){
     opsList.replaceChildren();
     if (!ops.length){ opsList.append(emptyState('No ops yet.')); return; }
     ops.forEach((op, i) => {
-      const row = el('div','ds-cluster-row');
+      const row = el('div','ds-cluster-row ds-op-row');
+      row.draggable = true;
+      row.dataset.idx = String(i);
+      row.append(el('span','ds-drag-grip','⋮⋮'));
       row.append(el('span','ds-chip', String(i+1)));
       row.append(el('span','ds-cluster-text', describeOp(op)));
+      const up = el('button','mini-btn','▲');
+      up.title = 'Move up';
+      up.addEventListener('click', () => { if (i > 0){ [ops[i-1], ops[i]] = [ops[i], ops[i-1]]; renderOps(); } });
+      const dn = el('button','mini-btn','▼');
+      dn.title = 'Move down';
+      dn.addEventListener('click', () => { if (i < ops.length - 1){ [ops[i+1], ops[i]] = [ops[i], ops[i+1]]; renderOps(); } });
       const rm = el('button','mini-btn warn','×');
       rm.addEventListener('click', () => { ops.splice(i,1); renderOps(); });
-      row.append(rm);
+      row.append(up, dn, rm);
+      // Drag handlers
+      row.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(i));
+        row.classList.add('ds-op-dragging');
+      });
+      row.addEventListener('dragend', () => row.classList.remove('ds-op-dragging'));
+      row.addEventListener('dragover', (e) => { e.preventDefault(); row.classList.add('ds-op-over'); });
+      row.addEventListener('dragleave', () => row.classList.remove('ds-op-over'));
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        row.classList.remove('ds-op-over');
+        const from = +e.dataTransfer.getData('text/plain');
+        const to = +row.dataset.idx;
+        if (Number.isFinite(from) && Number.isFinite(to) && from !== to){
+          const [moved] = ops.splice(from, 1);
+          ops.splice(to, 0, moved);
+          renderOps();
+        }
+      });
       opsList.append(row);
     });
   };
