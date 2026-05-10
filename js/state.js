@@ -21,6 +21,10 @@ export const state = {
   activeOrigIdx: -1,
   files: [],          // [{id, folder, snapshot}]
   activeId: null,
+  // Dataset audit cache + filters
+  lastAudit: null,    // {lint: Map<origIdx, issue[]>, pii: Map<origIdx, hit[]>, dups: Set<origIdx>, ranAt: number}
+  reviewFilter: new Set(),  // Set<'approve'|'reject'|'todo'|'none'>
+  tagFilter: new Set(),     // Set<string>
 };
 
 let _fileIdCounter = 0;

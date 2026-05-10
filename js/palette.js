@@ -200,6 +200,7 @@ function buildCommandList(){
   // Dataset commands
   const dsui = w.__dataset_ui;
   if (dsui){
+    cmds.push({label: 'Dataset: Run all audits', action: () => dsui.openAuditOverview()});
     cmds.push({label: 'Dataset: Format profile + stats', action: () => dsui.openFormatProfile()});
     cmds.push({label: 'Dataset: Lint', action: () => dsui.openLint()});
     cmds.push({label: 'Dataset: JSON Schema validate', action: () => dsui.openSchemaValidate()});

@@ -11,12 +11,22 @@ export function applyFilters(items){
   const minT = (state.minTokens != null && Number.isFinite(state.minTokens)) ? state.minTokens : -Infinity;
   const maxT = (state.maxTokens != null && Number.isFinite(state.maxTokens)) ? state.maxTokens : Infinity;
   const reqKeys = state.selectedKeys;
+  const rev = state.reviewFilter;
+  const tags = state.tagFilter;
   return items.filter(it => {
     if (it.deleted) return false;
     if (q && !it.searchText.includes(q)) return false;
     if (it.tokens < minT || it.tokens > maxT) return false;
     if (reqKeys.size){
       for (const k of reqKeys) if (!it.topKeys.includes(k)) return false;
+    }
+    if (rev && rev.size){
+      const r = it.review || 'none';
+      if (!rev.has(r)) return false;
+    }
+    if (tags && tags.size){
+      const itTags = Array.isArray(it.tags) ? it.tags : [];
+      for (const t of tags) if (!itTags.includes(t)) return false;
     }
     return true;
   });
