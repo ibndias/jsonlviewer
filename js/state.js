@@ -25,6 +25,8 @@ export const state = {
   lastAudit: null,    // {lint: Map<origIdx, issue[]>, pii: Map<origIdx, hit[]>, dups: Set<origIdx>, ranAt: number}
   reviewFilter: new Set(),  // Set<'approve'|'reject'|'todo'|'none'>
   tagFilter: new Set(),     // Set<string>
+  // Undo for bulk dataset ops: { label, beforeMap: Map<origIdx, snapshot>, ts }
+  bulkUndo: null,
 };
 
 let _fileIdCounter = 0;

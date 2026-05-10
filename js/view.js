@@ -133,7 +133,12 @@ export function setActive(origIdx, scroll=true){
   markActive();
   if (scroll){
     const card = getActiveCard();
-    if (card) card.scrollIntoView({ block:'nearest', behavior:'smooth' });
+    if (card){
+      card.scrollIntoView({ block:'nearest', behavior:'smooth' });
+      // Brief pulse so users coming from a modal jump button see where they landed.
+      card.classList.add('jumped');
+      setTimeout(() => card.classList.remove('jumped'), 1200);
+    }
   }
 }
 export function markActive(){

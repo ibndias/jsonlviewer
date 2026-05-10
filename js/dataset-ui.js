@@ -109,6 +109,50 @@ function ensureFile(){
   return true;
 }
 
+function snapshotItem(it){
+  return {
+    parsed: it.error ? null : (typeof structuredClone === 'function' ? structuredClone(it.parsed) : JSON.parse(JSON.stringify(it.parsed))),
+    rawText: it.rawText,
+    dirty: it.dirty,
+    deleted: it.deleted,
+    excluded: it.excluded,
+    tags: Array.isArray(it.tags) ? it.tags.slice() : [],
+    review: it.review,
+  };
+}
+
+// Capture all live items before a bulk destructive op so user can revert.
+function captureBulkUndo(label){
+  const beforeMap = new Map();
+  for (const it of state.items){
+    if (it.deleted) continue;
+    beforeMap.set(it.origIdx, snapshotItem(it));
+  }
+  state.bulkUndo = { label, beforeMap, ts: Date.now() };
+}
+
+function undoBulk(){
+  if (!state.bulkUndo){ showToast('Nothing to undo', 'err'); return; }
+  const { beforeMap, label } = state.bulkUndo;
+  for (const [oi, snap] of beforeMap){
+    const it = state.items[oi];
+    if (!it) continue;
+    if (snap.parsed != null) it.parsed = snap.parsed;
+    it.rawText = snap.rawText;
+    it.dirty = snap.dirty;
+    it.deleted = snap.deleted;
+    it.excluded = snap.excluded;
+    it.tags = snap.tags.slice();
+    it.review = snap.review;
+    recomputeItemMetrics(it);
+    rebuildCardInPlace(it);
+  }
+  state.bulkUndo = null;
+  analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
+  decorateAllCards();
+  showToast(`Undone: ${label}`);
+}
+
 function jumpButton(origIdx, label){
   const it = state.items[origIdx];
   const b = el('button','mini-btn ds-jump', label || ('#' + ((it?.fileIdx ?? 0) + 1)));
@@ -216,8 +260,9 @@ function computeQualityScore(prof, stats, audit){
 }
 
 function qualityCard(score, prof, audit){
-  const wrap = el('div','ds-quality');
-  const ring = el('div','ds-quality-ring');
+  const tier = score >= 80 ? 'good' : score >= 60 ? 'warn' : 'bad';
+  const wrap = el('div', `ds-quality quality-${tier}`);
+  const ring = el('div', `ds-quality-ring ring-${tier}`);
   ring.style.setProperty('--score', score);
   ring.append(el('div','ds-quality-num', String(score)));
   ring.append(el('div','ds-quality-unit', '/ 100'));
@@ -508,9 +553,10 @@ function renderDedupGroups(container, groups, keepMode){
 
   deleteOthers.addEventListener('click', async () => {
     const ok = await confirmModal({title:'Delete duplicates?',
-      body:`Will mark ${dupCount} rows as deleted (keeping ${keepMode}).`,
+      body:`Will mark ${dupCount} rows as deleted (keeping ${keepMode}). Undoable.`,
       okLabel:'Delete', dangerous:true});
     if (!ok) return;
+    captureBulkUndo(`Delete ${dupCount} duplicate${dupCount===1?'':'s'}`);
     let n = 0;
     for (const g of groups){
       const k = pickKeeper(g, keepMode);
@@ -520,7 +566,7 @@ function renderDedupGroups(container, groups, keepMode){
         if (!it.deleted){ it.deleted = true; n++; }
       }
     }
-    analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
+    analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge(); renderDatasetPanel();
     showToast(`Deleted ${n} duplicate${n===1?'':'s'}`);
   });
 
@@ -574,9 +620,10 @@ export function openPIIScrub(){
 
   redactBtn.addEventListener('click', async () => {
     const ok = await confirmModal({title:'Redact all matched PII?',
-      body:'Replaces matches with tokens like <EMAIL>. Edits become unsaved (review before save).',
+      body:'Replaces matches with tokens like <EMAIL>. Edits become unsaved (review before save). Undoable.',
       okLabel:'Redact'});
     if (!ok) return;
+    captureBulkUndo('Redact PII');
     let touched = 0, total = 0;
     for (const it of liveItems()){
       if (it.error){
@@ -591,7 +638,7 @@ export function openPIIScrub(){
         touched++; total += n;
       }
     }
-    analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
+    analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge(); renderDatasetPanel();
     showToast(`Redacted ${total} match${total===1?'':'es'} in ${touched} row${touched===1?'':'s'}`);
     renderPIIResults(result, enabled);
   });
@@ -737,6 +784,12 @@ export function openLint(){
   ctrls.append(runBtn, excludeBtn);
   wrap.append(ctrls, result);
 
+  const legend = el('div','ds-roles');
+  legend.append(el('span','ds-issue error','error'));
+  legend.append(el('span','muted','blocking — fix before training'));
+  legend.append(el('span','ds-issue warn','warn'));
+  legend.append(el('span','muted','review recommended'));
+  wrap.insertBefore(legend, wrap.firstChild);
   openDatasetModal('Lint dataset', wrap, { subtitle: 'Format conformance + structural sanity per row' });
 
   function withSpinner(label, fn){
@@ -997,8 +1050,9 @@ export function openConvert(){
 
   runBtn.addEventListener('click', async () => {
     direction = 'to-openai';
-    const ok = await confirmModal({title:'Convert all → OpenAI chat?', body:'Edits become unsaved. Save to commit.', okLabel:'Convert'});
+    const ok = await confirmModal({title:'Convert all → OpenAI chat?', body:'Edits become unsaved. Save to commit. Undoable.', okLabel:'Convert'});
     if (!ok) return;
+    captureBulkUndo('Convert → OpenAI chat');
     let n = 0, skipped = 0;
     for (const it of liveItems()){
       if (it.error){ skipped++; continue; }
@@ -1007,7 +1061,7 @@ export function openConvert(){
       it.parsed = next; it.dirty = true;
       recomputeItemMetrics(it); rebuildCardInPlace(it); n++;
     }
-    analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
+    analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge(); renderDatasetPanel();
     showToast(n ? `Converted ${n} row${n===1?'':'s'} • ${skipped} skipped` : `Nothing to convert (${skipped} skipped)`, n ? '' : 'err');
   });
 
@@ -1015,8 +1069,9 @@ export function openConvert(){
   sharegptBtn.addEventListener('click', async (e) => {
     direction = 'to-sharegpt';
     if (e.shiftKey){ renderPreview(); return; }
-    const ok = await confirmModal({title:'OpenAI → ShareGPT?', body:'Maps messages[] → conversations[]. Shift-click for preview first.', okLabel:'Convert'});
+    const ok = await confirmModal({title:'OpenAI → ShareGPT?', body:'Maps messages[] → conversations[]. Shift-click for preview first. Undoable.', okLabel:'Convert'});
     if (!ok) return;
+    captureBulkUndo('Convert → ShareGPT');
     let n = 0, skipped = 0;
     for (const it of liveItems()){
       if (it.error){ skipped++; continue; }
@@ -1025,7 +1080,7 @@ export function openConvert(){
       it.parsed = next; it.dirty = true;
       recomputeItemMetrics(it); rebuildCardInPlace(it); n++;
     }
-    analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
+    analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge(); renderDatasetPanel();
     showToast(n ? `Converted ${n} row${n===1?'':'s'} • ${skipped} skipped` : 'Nothing to convert', n ? '' : 'err');
   });
 }
@@ -1296,8 +1351,9 @@ export function openBulkTransform(){
   applyBtn.addEventListener('click', async () => {
     if (!ops.length){ showToast('No ops'); return; }
     const ok = await confirmModal({title:'Apply transform?',
-      body:`Will edit all matching rows. Save to commit. Ops: ${ops.length}`, okLabel:'Apply'});
+      body:`Will edit all matching rows. Save to commit. Ops: ${ops.length}. Undoable.`, okLabel:'Apply'});
     if (!ok) return;
+    captureBulkUndo(`Bulk transform (${ops.length} ops)`);
     let touched = 0, errored = 0;
     let firstErr = null;
     for (const it of liveItems()){
@@ -1317,7 +1373,7 @@ export function openBulkTransform(){
       showToast(`Skipped ${errored} row${errored===1?'':'s'}: ${firstErr}`, 'err');
       return;
     }
-    analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
+    analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge(); renderDatasetPanel();
     showToast(`Transform applied to ${touched} row${touched===1?'':'s'}`);
   });
 }
@@ -1705,9 +1761,10 @@ export function renderDatasetPanel(){
   // Live count chips after audit + score (cached at audit time)
   if (state.lastAudit){
     const score = state.lastAudit.score ?? '—';
-    const scoreRow = el('div','ds-panel-score');
+    const tier = score >= 80 ? 'good' : score >= 60 ? 'warn' : 'bad';
+    const scoreRow = el('div',`ds-panel-score score-${tier}`);
     scoreRow.title = scoreBreakdownText();
-    const ring = el('div','ds-panel-ring');
+    const ring = el('div',`ds-panel-ring ring-${tier}`);
     ring.style.setProperty('--score', score === '—' ? 0 : score);
     ring.append(el('span','ds-panel-ring-num', String(score)));
     scoreRow.append(ring);
@@ -1734,6 +1791,16 @@ export function renderDatasetPanel(){
     const exportBtn = el('button','mini-btn ds-panel-btn','⤓ Export audit report');
     exportBtn.addEventListener('click', exportAuditReport);
     root.append(exportBtn);
+  }
+
+  // Undo last bulk op
+  if (state.bulkUndo){
+    const u = el('button','mini-btn ds-panel-btn ds-undo-btn');
+    u.append(el('span','ds-panel-icon','↶'));
+    u.append(el('span',null, `Undo: ${state.bulkUndo.label}`));
+    u.title = `Captured ${new Date(state.bulkUndo.ts).toLocaleTimeString()}`;
+    u.addEventListener('click', () => undoBulk());
+    root.append(u);
   }
 
   const sec1 = el('div','ds-panel-sec');

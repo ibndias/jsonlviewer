@@ -589,6 +589,11 @@
   .card.active{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft), var(--shadow-md)}
   .card.dirty{border-left:3px solid var(--dirty)}
   .card.dirty.active{border-left:3px solid var(--accent)}
+  @keyframes ds-jump-pulse {
+    0%   { box-shadow:0 0 0 0 color-mix(in oklab, var(--accent) 50%, transparent); }
+    100% { box-shadow:0 0 0 14px transparent; }
+  }
+  .card.jumped{animation:ds-jump-pulse 1s ease-out}
   .card header{position:relative; background:transparent; border:0; padding:0; backdrop-filter:none}
   .card-head{
     display:flex; align-items:center; justify-content:space-between;
@@ -894,7 +899,11 @@
   }
   .ds-title{font:600 var(--fs-lg)/1 var(--sans)}
   .ds-body{flex:1; overflow:auto; padding:var(--s-5); display:flex; flex-direction:column; gap:var(--s-4)}
-  .ds-foot{padding:var(--s-3) var(--s-5); border-top:1px solid var(--border-soft); display:flex; gap:var(--s-2); justify-content:flex-end}
+  .ds-foot{
+    padding:var(--s-3) var(--s-5); border-top:1px solid var(--border-soft);
+    display:flex; gap:var(--s-2); justify-content:flex-end;
+    background:var(--panel); position:sticky; bottom:0;
+  }
 
   .ds-section{display:flex; flex-direction:column; gap:var(--s-3)}
   .ds-row{font:var(--fs-md)/1.4 var(--sans)}
@@ -992,14 +1001,20 @@
     border:1px solid var(--border-soft); border-radius:var(--r-md);
     background:linear-gradient(135deg, var(--panel-soft), var(--panel));
   }
+  .ds-quality.quality-good{border-left:3px solid var(--ok)}
+  .ds-quality.quality-warn{border-left:3px solid var(--warn)}
+  .ds-quality.quality-bad{border-left:3px solid var(--err)}
   .ds-quality-ring{
-    --score:0;
+    --score:0; --ring-color:var(--accent);
     width:88px; height:88px; flex-shrink:0;
     border-radius:50%;
-    background:conic-gradient(var(--accent) calc(var(--score) * 1%), var(--border-soft) calc(var(--score) * 1%));
+    background:conic-gradient(var(--ring-color) calc(var(--score) * 1%), var(--border-soft) calc(var(--score) * 1%));
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     position:relative;
   }
+  .ds-quality-ring.ring-good, .ds-panel-ring.ring-good{--ring-color:var(--ok)}
+  .ds-quality-ring.ring-warn, .ds-panel-ring.ring-warn{--ring-color:var(--warn)}
+  .ds-quality-ring.ring-bad,  .ds-panel-ring.ring-bad {--ring-color:var(--err)}
   .ds-quality-ring::before{
     content:''; position:absolute; inset:6px; border-radius:50%;
     background:var(--panel);
@@ -1122,11 +1137,17 @@
     background:var(--panel-soft); border:1px solid var(--border-soft); border-radius:var(--r-md);
   }
   .ds-panel-ring{
-    --score:0; width:42px; height:42px; flex-shrink:0;
+    --score:0; --ring-color:var(--accent);
+    width:42px; height:42px; flex-shrink:0;
     border-radius:50%;
-    background:conic-gradient(var(--accent) calc(var(--score) * 1%), var(--border-soft) calc(var(--score) * 1%));
+    background:conic-gradient(var(--ring-color) calc(var(--score) * 1%), var(--border-soft) calc(var(--score) * 1%));
     display:flex; align-items:center; justify-content:center; position:relative;
   }
+  .ds-panel-score.score-good{border-left:3px solid var(--ok)}
+  .ds-panel-score.score-warn{border-left:3px solid var(--warn)}
+  .ds-panel-score.score-bad{border-left:3px solid var(--err)}
+  .ds-undo-btn{background:color-mix(in oklab, var(--accent) 14%, transparent); color:var(--fg)}
+  .ds-undo-btn:hover{background:color-mix(in oklab, var(--accent) 22%, transparent)}
   .ds-panel-ring::before{content:''; position:absolute; inset:3px; border-radius:50%; background:var(--panel)}
   .ds-panel-ring-num{position:relative; font:600 var(--fs-base)/1 var(--serif); color:var(--fg)}
   .ds-panel-score-txt{display:flex; flex-direction:column; gap:0; line-height:1.2}
@@ -1363,7 +1384,7 @@
     </div>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script type="module" src="js/main.js?v=p9"></script>
