@@ -1266,6 +1266,17 @@
   .status-score.score-bad {background:color-mix(in oklab, var(--err) 22%, transparent); color:var(--err)}
   .status-score.stale{opacity:.55; text-decoration:line-through}
 
+  /* Score change pulse */
+  @keyframes ds-score-pulse {
+    0%   { transform:scale(1); box-shadow:0 0 0 0 color-mix(in oklab, var(--accent) 40%, transparent); }
+    40%  { transform:scale(1.04); box-shadow:0 0 0 6px color-mix(in oklab, var(--accent) 25%, transparent); }
+    100% { transform:scale(1); box-shadow:0 0 0 0 transparent; }
+  }
+  .ds-score-changed{animation:ds-score-pulse 700ms ease-out}
+  @media (prefers-reduced-motion: reduce){
+    .ds-score-changed{animation:none}
+  }
+
   /* Drag-reorder op rows in bulk transform */
   .ds-op-row{cursor:grab; user-select:none}
   .ds-op-row.ds-op-dragging{opacity:.4}

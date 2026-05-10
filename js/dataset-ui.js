@@ -355,6 +355,18 @@ function histogram(buckets){
 
 /* ---------- Audit overview ---------- */
 
+// Try to restore the last persisted audit when a file finishes loading.
+// Sanity-checked by file name + live row count; otherwise silent no-op.
+export function tryRestoreAuditCache(){
+  if (state.lastAudit) return; // don't overwrite a fresh run
+  if (!state.items.length) return;
+  restoreAuditCache();
+  if (state.lastAudit){
+    decorateAllCards();
+    try { window.__projectsui_refreshStatusBar?.(); } catch {}
+  }
+}
+
 // Run audits silently (no modal) and refresh panel + cards.
 export function runAuditSilent(){
   if (!state.items.length) return;
@@ -380,6 +392,7 @@ export function runAuditSilent(){
   pushScoreHistory();
   decorateAllCards();
   try { window.__projectsui_refreshStatusBar?.(); } catch {}
+  persistAuditCache();
 }
 
 function pushScoreHistory(){
@@ -2184,7 +2197,11 @@ export function renderDatasetPanel(){
   if (!state.lastAudit){
     const nudge = el('div','ds-onboarding');
     nudge.append(el('span','ds-onboarding-arrow','↑'));
-    nudge.append(el('div','ds-onboarding-msg', 'Run audits to see your dataset quality score, find duplicates, PII matches, and lint issues.'));
+    const msg = el('div','ds-onboarding-msg');
+    msg.append(document.createTextNode('Run audits to see quality score, duplicates, PII, and lint issues. Or press '));
+    msg.append(el('kbd','ds-kbd','Shift + A'));
+    msg.append(document.createTextNode(' anywhere.'));
+    nudge.append(msg);
     root.append(nudge);
   }
 
@@ -2203,6 +2220,10 @@ export function renderDatasetPanel(){
     const scoreRow = el('div',`ds-panel-score score-${tier}`);
     scoreRow.title = scoreBreakdownText();
     scoreRow.setAttribute('aria-label', `Quality score ${score} of 100, ${tierLabel}`);
+    // Pulse if score changed since last render
+    const prev = state._lastRenderedScore;
+    if (prev != null && prev !== score) scoreRow.classList.add('ds-score-changed');
+    state._lastRenderedScore = score;
     const ring = el('div',`ds-panel-ring ring-${tier}`);
     ring.style.setProperty('--score', score === '—' ? 0 : score);
     ring.append(el('span','ds-panel-ring-num', String(score)));
@@ -2467,6 +2488,53 @@ function exportAuditReport(){
 
 const PANEL_STATE_KEY = 'jsonl_viewer_dataset_panel_collapsed_v1';
 const FILTERS_KEY = 'jsonl_viewer_dataset_filters_v1';
+const AUDIT_CACHE_KEY = 'jsonl_viewer_dataset_audit_v1';
+const AUDIT_CACHE_BUDGET = 1_500_000;
+
+function persistAuditCache(){
+  try {
+    const a = state.lastAudit;
+    if (!a){ localStorage.removeItem(AUDIT_CACHE_KEY); return; }
+    const ser = {
+      file: state.fileName || '',
+      itemsCount: state.items.filter(it => !it.deleted).length,
+      ranAt: a.ranAt,
+      stale: !!a.stale,
+      score: a.score,
+      dominant: a.dominant,
+      dominantPct: a.dominantPct,
+      lint: [...(a.lint?.entries() || [])],
+      pii:  [...(a.pii?.entries() || [])],
+      dups: [...(a.dups || [])],
+    };
+    const text = JSON.stringify(ser);
+    if (text.length > AUDIT_CACHE_BUDGET) return;
+    localStorage.setItem(AUDIT_CACHE_KEY, text);
+  } catch {}
+}
+
+function restoreAuditCache(){
+  try {
+    const raw = localStorage.getItem(AUDIT_CACHE_KEY);
+    if (!raw) return;
+    const ser = JSON.parse(raw);
+    // Sanity check: only restore if file name + live count still match
+    const liveCount = state.items.filter(it => !it.deleted).length;
+    if (ser.file !== (state.fileName || '') || ser.itemsCount !== liveCount){
+      return;
+    }
+    state.lastAudit = {
+      ranAt: ser.ranAt,
+      stale: ser.stale || true, // re-flagged as stale until user re-runs
+      score: ser.score,
+      dominant: ser.dominant,
+      dominantPct: ser.dominantPct,
+      lint: new Map(ser.lint),
+      pii:  new Map(ser.pii),
+      dups: new Set(ser.dups),
+    };
+  } catch {}
+}
 
 function persistFilters(){
   try {
@@ -2630,7 +2698,7 @@ if (typeof window !== 'undefined'){
     openDiffActive, openAuditOverview, openShortcutsCheatsheet, openCompare,
     renderDatasetPanel, setRowReview, toggleRowTag, updateCardReviewUI,
     decorateAllCards, knownTags,
-    runAuditSilent,
+    runAuditSilent, tryRestoreAuditCache,
   };
   window.__dataset_exportAudit = exportAuditReport;
   window.__dataset_undo = undoBulk;

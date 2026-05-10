@@ -193,7 +193,9 @@ export async function loadFile(file, opts={}){
   $drop.classList.add('compact');
   $drop.style.display = 'none';
 
-  // Auto-run audit on small datasets so the panel score is ambient.
+  // First, try restoring a persisted audit for the same file (fast).
+  setTimeout(() => { try { window.__dataset_ui?.tryRestoreAuditCache?.(); } catch {} }, 0);
+  // Then auto-run audit on small datasets so the panel score is ambient.
   if (state.items.length && state.items.length <= 5000){
     setTimeout(() => { try { window.__dataset_ui?.runAuditSilent?.(); } catch {} }, 50);
   }
