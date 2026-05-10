@@ -393,7 +393,7 @@ function renderDedupGroups(container, groups, keepMode){
 
   const dupSet = new Set();
   for (const g of groups) for (const i of g) dupSet.add(i);
-  if (state.lastAudit) state.lastAudit.dups = dupSet;
+  if (state.lastAudit){ state.lastAudit.dups = dupSet; state.lastAudit.stale = false; state.lastAudit.ranAt = Date.now(); }
   else state.lastAudit = { lint:new Map(), pii:new Map(), dups:dupSet, ranAt:Date.now() };
   decorateAllCards();
 
@@ -557,6 +557,18 @@ function collectPIIHits(item, enabled){
 
 function renderPIIResults(container, enabled){
   container.replaceChildren();
+  const items = liveItems();
+  // Show spinner for big datasets, defer scan to next tick
+  if (items.length > 200){
+    container.append(el('div','ds-row muted', `Scanning ${items.length} rows…`));
+    setTimeout(() => renderPIIResultsSync(container, enabled), 30);
+    return;
+  }
+  return renderPIIResultsSync(container, enabled);
+}
+
+function renderPIIResultsSync(container, enabled){
+  container.replaceChildren();
   const byPattern = new Map();
   const byRow = new Map();
   let total = 0;
@@ -578,7 +590,7 @@ function renderPIIResults(container, enabled){
   for (const [oi, fieldHits] of byRow){
     piiCache.set(oi, fieldHits.flatMap(fh => fh.hits.map(h => ({ ...h, field: fh.field }))));
   }
-  if (state.lastAudit) state.lastAudit.pii = piiCache;
+  if (state.lastAudit){ state.lastAudit.pii = piiCache; state.lastAudit.stale = false; state.lastAudit.ranAt = Date.now(); }
   else state.lastAudit = { lint:new Map(), pii: piiCache, dups:new Set(), ranAt:Date.now() };
   decorateAllCards();
 
@@ -658,7 +670,7 @@ export function openLint(){
     const all = lintAll(state.items);
     const lintMap = new Map();
     for (const r of all) lintMap.set(r.origIdx, r.issues);
-    if (state.lastAudit) state.lastAudit.lint = lintMap;
+    if (state.lastAudit){ state.lastAudit.lint = lintMap; state.lastAudit.stale = false; state.lastAudit.ranAt = Date.now(); }
     else state.lastAudit = { lint:lintMap, pii:new Map(), dups:new Set(), ranAt:Date.now() };
     decorateAllCards();
 
@@ -1501,8 +1513,22 @@ export function renderDatasetPanel(){
     return;
   }
 
-  // Live count chips after audit
+  // Live count chips after audit + score
   if (state.lastAudit){
+    const prof = profileDataset(state.items);
+    const stats = computeStats(state.items);
+    const score = computeQualityScore(prof, stats, state.lastAudit);
+    const scoreRow = el('div','ds-panel-score');
+    const ring = el('div','ds-panel-ring');
+    ring.style.setProperty('--score', score);
+    ring.append(el('span','ds-panel-ring-num', String(score)));
+    scoreRow.append(ring);
+    const txt = el('div','ds-panel-score-txt');
+    txt.append(el('div','ds-panel-score-h', score >= 80 ? 'healthy' : score >= 60 ? 'cleanup' : 'high variance'));
+    txt.append(el('div','ds-panel-score-s', `quality • ${state.lastAudit.stale ? 'stale' : new Date(state.lastAudit.ranAt).toLocaleTimeString()}`));
+    scoreRow.append(txt);
+    root.append(scoreRow);
+
     const live = el('div','ds-panel-live');
     const lintN = state.lastAudit.lint?.size || 0;
     let piiN = 0;
@@ -1515,6 +1541,10 @@ export function renderDatasetPanel(){
       live.append(el('span', 'ds-chip sev-warn ds-stale-chip', 'stale — re-run'));
     }
     root.append(live);
+
+    const exportBtn = el('button','mini-btn ds-panel-btn','⤓ Export audit report');
+    exportBtn.addEventListener('click', exportAuditReport);
+    root.append(exportBtn);
   }
 
   const sec1 = el('div','ds-panel-sec');
@@ -1602,6 +1632,45 @@ export function renderDatasetPanel(){
   root.append(el('div','ds-panel-hint','a / r / t · review · d · diff'));
 }
 
+function exportAuditReport(){
+  if (!state.lastAudit){ showToast('Run audit first', 'err'); return; }
+  const prof = profileDataset(state.items);
+  const stats = computeStats(state.items);
+  const score = computeQualityScore(prof, stats, state.lastAudit);
+  const audit = state.lastAudit;
+  const report = {
+    format: 'jsonlviewer-audit',
+    schemaVersion: 1,
+    file: state.fileName || 'untitled',
+    ranAt: new Date(audit.ranAt).toISOString(),
+    stale: !!audit.stale,
+    score,
+    profile: {
+      total: prof.total,
+      dominant: prof.dominant,
+      dominantPct: prof.dominantPct,
+      counts: Object.fromEntries(prof.counts),
+    },
+    stats: {
+      tokens: stats.tokens,
+      turns: stats.turns,
+      roleCount: Object.fromEntries(stats.roleCount),
+    },
+    lint: [...audit.lint.entries()].map(([oi, issues]) => ({
+      origIdx: oi, fileIdx: state.items[oi]?.fileIdx, issues
+    })),
+    pii: [...audit.pii.entries()].map(([oi, hits]) => ({
+      origIdx: oi, fileIdx: state.items[oi]?.fileIdx,
+      hits: hits.map(h => ({ id: h.id, field: h.field, match: h.match }))
+    })),
+    duplicates: [...audit.dups],
+  };
+  const text = JSON.stringify(report, null, 2);
+  const base = (state.fileName || 'dataset').replace(/\.(json|jsonl|txt|log)$/i, '');
+  downloadText(`${base}-audit.json`, text, 'application/json');
+  showToast('Audit report downloaded');
+}
+
 function panelBtn(icon, label, action){
   const b = el('button','mini-btn ds-panel-btn');
   b.append(el('span','ds-panel-icon', icon));
@@ -1619,4 +1688,5 @@ if (typeof window !== 'undefined'){
     renderDatasetPanel, setRowReview, toggleRowTag, updateCardReviewUI,
     decorateAllCards, knownTags,
   };
+  window.__dataset_exportAudit = exportAuditReport;
 }

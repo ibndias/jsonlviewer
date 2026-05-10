@@ -212,6 +212,7 @@ function buildCommandList(){
     cmds.push({label: 'Dataset: Format convert', action: () => dsui.openConvert()});
     cmds.push({label: 'Dataset: Leakage check', action: () => dsui.openLeakage()});
     cmds.push({label: 'Dataset: Diff active row', action: () => dsui.openDiffActive()});
+    cmds.push({label: 'Dataset: Export audit report', action: () => w.__dataset_exportAudit?.()});
   }
   cmds.push({label: 'Project: Import Bundle…', action: () => {
     const inp = document.createElement('input');
