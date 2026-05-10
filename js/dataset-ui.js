@@ -339,7 +339,23 @@ export function runAuditSilent(){
   state.lastAudit.score = computeQualityScore(prof, stats, state.lastAudit);
   state.lastAudit.dominant = prof.dominant;
   state.lastAudit.dominantPct = prof.dominantPct;
+  pushScoreHistory();
   decorateAllCards();
+}
+
+function pushScoreHistory(){
+  if (!state.lastAudit) return;
+  if (!Array.isArray(state.scoreHistory)) state.scoreHistory = [];
+  let piiN = 0;
+  for (const arr of (state.lastAudit.pii?.values() || [])) piiN += arr.length;
+  state.scoreHistory.push({
+    score: state.lastAudit.score,
+    ranAt: state.lastAudit.ranAt,
+    lintN: state.lastAudit.lint?.size || 0,
+    piiN,
+    dupN: state.lastAudit.dups?.size || 0,
+  });
+  while (state.scoreHistory.length > 10) state.scoreHistory.shift();
 }
 
 export function openAuditOverview(){
@@ -370,6 +386,7 @@ export function openAuditOverview(){
     state.lastAudit.score = computeQualityScore(prof, stats, state.lastAudit);
     state.lastAudit.dominant = prof.dominant;
     state.lastAudit.dominantPct = prof.dominantPct;
+    pushScoreHistory();
     decorateAllCards();
 
     wrap.replaceChildren();
@@ -1797,6 +1814,14 @@ export function renderDatasetPanel(){
     return;
   }
 
+  // Onboarding nudge: file loaded but never audited (auto-audit may be skipped on big files)
+  if (!state.lastAudit){
+    const nudge = el('div','ds-onboarding');
+    nudge.append(el('span','ds-onboarding-arrow','↑'));
+    nudge.append(el('div','ds-onboarding-msg', 'Run audits to see your dataset quality score, find duplicates, PII matches, and lint issues.'));
+    root.append(nudge);
+  }
+
   // Live count chips after audit + score (cached at audit time)
   if (state.lastAudit){
     const score = state.lastAudit.score ?? '—';
@@ -1817,6 +1842,21 @@ export function renderDatasetPanel(){
     txt.append(h);
     txt.append(el('div','ds-panel-score-s', `quality • ${state.lastAudit.stale ? 'stale' : new Date(state.lastAudit.ranAt).toLocaleTimeString()}`));
     scoreRow.append(txt);
+    // Mini sparkline of last N score points
+    const hist = Array.isArray(state.scoreHistory) ? state.scoreHistory : [];
+    if (hist.length >= 2){
+      const spark = el('div','ds-spark');
+      spark.title = hist.map(h => `${new Date(h.ranAt).toLocaleTimeString()}: ${h.score}`).join('\n');
+      const max = Math.max(100, ...hist.map(p => p.score));
+      for (const p of hist){
+        const bar = el('span','ds-spark-bar');
+        bar.style.height = `${(p.score / max) * 100}%`;
+        const pTier = p.score >= 80 ? 'good' : p.score >= 60 ? 'warn' : 'bad';
+        bar.classList.add('spark-' + pTier);
+        spark.append(bar);
+      }
+      scoreRow.append(spark);
+    }
     scoreRow.style.cursor = 'help';
     root.append(scoreRow);
 
@@ -1850,28 +1890,23 @@ export function renderDatasetPanel(){
     root.append(u);
   }
 
-  const sec1 = el('div','ds-panel-sec');
-  sec1.append(el('div','ds-panel-h','Audit'));
-  sec1.append(panelBtn('▦', 'Format profile + stats', openFormatProfile));
-  sec1.append(panelBtn('✓', 'Lint dataset', openLint));
-  sec1.append(panelBtn('§', 'Schema validate', openSchemaValidate));
-  root.append(sec1);
-
-  const sec2 = el('div','ds-panel-sec');
-  sec2.append(el('div','ds-panel-h','Curate'));
-  sec2.append(panelBtn('◯', 'Find duplicates', openDedup));
-  sec2.append(panelBtn('★', 'PII scrub', openPIIScrub));
-  sec2.append(panelBtn('⤳', 'Bulk transform', openBulkTransform));
-  root.append(sec2);
-
-  const sec3 = el('div','ds-panel-sec');
-  sec3.append(el('div','ds-panel-h','Workflow'));
-  sec3.append(panelBtn('☑', 'Tagging + review', openTagging));
-  sec3.append(panelBtn('✂', 'Sample / split', openSplit));
-  sec3.append(panelBtn('⇄', 'Format convert', openConvert));
-  sec3.append(panelBtn('⌕', 'Leakage check', openLeakage));
-  sec3.append(panelBtn('Δ', 'Diff active row (d)', openDiffActive));
-  root.append(sec3);
+  root.append(makeSection('audit', 'Audit', [
+    ['▦', 'Format profile + stats', openFormatProfile],
+    ['✓', 'Lint dataset', openLint],
+    ['§', 'Schema validate', openSchemaValidate],
+  ]));
+  root.append(makeSection('curate', 'Curate', [
+    ['◯', 'Find duplicates', openDedup],
+    ['★', 'PII scrub', openPIIScrub],
+    ['⤳', 'Bulk transform', openBulkTransform],
+  ]));
+  root.append(makeSection('workflow', 'Workflow', [
+    ['☑', 'Tagging + review', openTagging],
+    ['✂', 'Sample / split', openSplit],
+    ['⇄', 'Format convert', openConvert],
+    ['⌕', 'Leakage check', openLeakage],
+    ['Δ', 'Diff active row (d)', openDiffActive],
+  ]));
 
   // Filter section
   const filt = el('div','ds-panel-sec');
@@ -2017,6 +2052,38 @@ function exportAuditReport(){
   const base = (state.fileName || 'dataset').replace(/\.(json|jsonl|txt|log)$/i, '');
   downloadText(`${base}-audit.json`, text, 'application/json');
   showToast('Audit report downloaded');
+}
+
+const PANEL_STATE_KEY = 'jsonl_viewer_dataset_panel_collapsed_v1';
+function getCollapsedSet(){
+  try {
+    const raw = localStorage.getItem(PANEL_STATE_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch { return new Set(); }
+}
+function persistCollapsed(set){
+  try { localStorage.setItem(PANEL_STATE_KEY, JSON.stringify([...set])); } catch {}
+}
+
+function makeSection(key, title, items){
+  const collapsed = getCollapsedSet();
+  const det = document.createElement('details');
+  det.className = 'ds-panel-sec';
+  det.open = !collapsed.has(key);
+  const sum = document.createElement('summary');
+  sum.className = 'ds-panel-h';
+  sum.append(el('span','ds-panel-h-caret','▾'));
+  sum.append(document.createTextNode(' ' + title));
+  det.append(sum);
+  for (const [icon, label, action] of items){
+    det.append(panelBtn(icon, label, action));
+  }
+  det.addEventListener('toggle', () => {
+    const set = getCollapsedSet();
+    if (det.open) set.delete(key); else set.add(key);
+    persistCollapsed(set);
+  });
+  return det;
 }
 
 function panelBtn(icon, label, action){

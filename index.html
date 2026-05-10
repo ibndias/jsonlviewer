@@ -1192,6 +1192,52 @@
   .ds-panel-score.score-bad{border-left:3px solid var(--err)}
   .ds-undo-btn{background:color-mix(in oklab, var(--accent) 14%, transparent); color:var(--fg)}
   .ds-undo-btn:hover{background:color-mix(in oklab, var(--accent) 22%, transparent)}
+
+  /* Score history sparkline */
+  .ds-spark{
+    display:flex; align-items:flex-end; gap:2px;
+    height:32px; min-width:60px; margin-left:auto;
+    padding:0 var(--s-2);
+  }
+  .ds-spark-bar{
+    width:4px; min-height:2px; border-radius:1px;
+    background:var(--muted-2); transition:height 240ms ease-out;
+  }
+  .ds-spark-bar.spark-good{background:var(--ok)}
+  .ds-spark-bar.spark-warn{background:var(--warn)}
+  .ds-spark-bar.spark-bad{background:var(--err)}
+
+  /* Onboarding nudge */
+  .ds-onboarding{
+    display:flex; align-items:flex-start; gap:var(--s-2);
+    padding:var(--s-3); margin-top:var(--s-2);
+    background:color-mix(in oklab, var(--accent) 12%, transparent);
+    border:1px dashed color-mix(in oklab, var(--accent) 50%, transparent);
+    border-radius:var(--r-md);
+    font:var(--fs-sm)/1.4 var(--sans); color:var(--fg);
+  }
+  .ds-onboarding-arrow{
+    font:600 var(--fs-xl)/1 var(--sans); color:var(--accent);
+    animation:ds-bob 1.5s ease-in-out infinite;
+  }
+  @keyframes ds-bob {
+    0%,100%{ transform:translateY(0) }
+    50%   { transform:translateY(-3px) }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .ds-onboarding-arrow{animation:none}
+  }
+  .ds-onboarding-msg{flex:1}
+
+  /* Section <details> */
+  details.ds-panel-sec{padding-bottom:var(--s-3); border-bottom:1px solid var(--border-soft)}
+  summary.ds-panel-h{
+    list-style:none; cursor:pointer; user-select:none;
+    display:flex; align-items:center; gap:var(--s-1);
+  }
+  summary.ds-panel-h::-webkit-details-marker{display:none}
+  .ds-panel-h-caret{display:inline-block; transition:transform .15s ease}
+  details:not([open]) > summary > .ds-panel-h-caret{transform:rotate(-90deg)}
   .ds-panel-ring::before{content:''; position:absolute; inset:3px; border-radius:50%; background:var(--panel)}
   .ds-panel-ring-num{position:relative; font:600 var(--fs-base)/1 var(--serif); color:var(--fg)}
   .ds-panel-score-txt{display:flex; flex-direction:column; gap:0; line-height:1.2}

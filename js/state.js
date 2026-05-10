@@ -27,6 +27,8 @@ export const state = {
   tagFilter: new Set(),     // Set<string>
   // Undo stack for bulk dataset ops: [{ label, beforeMap, ts }, ...] (newest last)
   bulkUndoStack: [],
+  // Score history: [{score, ranAt, lintN, piiN, dupN}] capped at 10
+  scoreHistory: [],
 };
 
 let _fileIdCounter = 0;
