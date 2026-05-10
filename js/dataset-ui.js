@@ -2322,8 +2322,14 @@ export function renderDatasetPanel(){
   const filt = el('div','ds-panel-sec');
   filt.append(el('div','ds-panel-h','Filter list by review'));
   const reviewRow = el('div','ds-roles ds-filter-row');
+  // Counts per review state for chip labels
+  const revCounts = { approve: 0, reject: 0, todo: 0, none: 0 };
+  for (const it of liveItems()){
+    revCounts[it.review || 'none']++;
+  }
   for (const [v, lab] of [['approve','✓ approved'],['reject','✗ rejected'],['todo','? todo'],['none','– no review']]){
-    const c = el('button','ds-filter-chip' + (state.reviewFilter.has(v) ? ' active' : ''), lab);
+    const c = el('button','ds-filter-chip' + (state.reviewFilter.has(v) ? ' active' : ''),
+      `${lab} (${revCounts[v]})`);
     c.addEventListener('click', () => {
       if (state.reviewFilter.has(v)) state.reviewFilter.delete(v);
       else state.reviewFilter.add(v);
@@ -2338,8 +2344,17 @@ export function renderDatasetPanel(){
   if (tags.length){
     filt.append(el('div','ds-panel-h','Filter by tag'));
     const tagRow = el('div','ds-roles ds-filter-row');
+    // Tag counts
+    const tagCounts = new Map();
+    for (const it of liveItems()){
+      for (const t of (it.tags || [])){
+        if (t.startsWith('_')) continue;
+        tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
+      }
+    }
     for (const t of tags){
-      const c = el('button','ds-filter-chip' + (state.tagFilter.has(t) ? ' active' : ''), '#' + t);
+      const c = el('button','ds-filter-chip' + (state.tagFilter.has(t) ? ' active' : ''),
+        `#${t} (${tagCounts.get(t) || 0})`);
       c.addEventListener('click', () => {
         if (state.tagFilter.has(t)) state.tagFilter.delete(t);
         else state.tagFilter.add(t);

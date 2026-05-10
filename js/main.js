@@ -220,6 +220,11 @@ const $addFolderBtn = $('addFolderBtn');
 if ($addFilesBtn) $addFilesBtn.addEventListener('click', () => $filesInput.click());
 if ($addFolderBtn) $addFolderBtn.addEventListener('click', () => $folderInput.click());
 
+const $helpBtn = $('helpBtn');
+if ($helpBtn) $helpBtn.addEventListener('click', () => {
+  window.__dataset_ui?.openShortcutsCheatsheet?.();
+});
+
 const $settingsBtn = $('settingsBtn');
 if ($settingsBtn) $settingsBtn.addEventListener('click', () => {
   // Open the Settings side panel (where the toggles live).
