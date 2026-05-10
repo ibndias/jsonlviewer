@@ -1814,12 +1814,18 @@ export function renderDatasetPanel(){
     return;
   }
 
-  // Onboarding nudge: file loaded but never audited (auto-audit may be skipped on big files)
+  // Onboarding nudge: file loaded but never audited
   if (!state.lastAudit){
     const nudge = el('div','ds-onboarding');
     nudge.append(el('span','ds-onboarding-arrow','↑'));
     nudge.append(el('div','ds-onboarding-msg', 'Run audits to see your dataset quality score, find duplicates, PII matches, and lint issues.'));
     root.append(nudge);
+  }
+
+  // Inspector — consolidated findings for the active row
+  const it = state.items[state.activeOrigIdx];
+  if (it){
+    root.append(makeInspector(it));
   }
 
   // Live count chips after audit + score (cached at audit time)
@@ -1869,7 +1875,10 @@ export function renderDatasetPanel(){
     live.append(el('span', `ds-chip ${piiN ? 'sev-warn' : ''}`, `PII: ${piiN}`));
     live.append(el('span', `ds-chip ${dupN ? 'sev-warn' : ''}`, `dup: ${dupN}`));
     if (state.lastAudit.stale){
-      live.append(el('span', 'ds-chip sev-warn ds-stale-chip', 'stale — re-run'));
+      const staleBtn = el('button', 'ds-chip sev-warn ds-stale-chip', 'stale — re-run');
+      staleBtn.title = 'Click to re-run all audits now';
+      staleBtn.addEventListener('click', () => { runAuditSilent(); showToast('Audit refreshed'); });
+      live.append(staleBtn);
     }
     root.append(live);
 
@@ -2083,6 +2092,99 @@ function makeSection(key, title, items){
     if (det.open) set.delete(key); else set.add(key);
     persistCollapsed(set);
   });
+  return det;
+}
+
+function makeInspector(item){
+  const det = document.createElement('details');
+  det.className = 'ds-panel-sec ds-inspector';
+  const collapsed = getCollapsedSet();
+  det.open = !collapsed.has('inspector');
+  det.addEventListener('toggle', () => {
+    const set = getCollapsedSet();
+    if (det.open) set.delete('inspector'); else set.add('inspector');
+    persistCollapsed(set);
+  });
+  const sum = document.createElement('summary');
+  sum.className = 'ds-panel-h';
+  sum.append(el('span','ds-panel-h-caret','▾'));
+  sum.append(document.createTextNode(` Inspector — row #${item.fileIdx + 1}`));
+  det.append(sum);
+
+  const body = el('div','ds-inspector-body');
+
+  // Review + tags
+  const meta = el('div','ds-inspector-meta');
+  if (item.review){
+    meta.append(el('span',`review-badge review-${item.review}`,
+      ({approve:'✓',reject:'✗',todo:'?'}[item.review] || '') + ' ' + item.review));
+  }
+  for (const t of (item.tags || [])){
+    if (t.startsWith('_')) continue;
+    meta.append(el('span','tag-badge', '#' + t));
+  }
+  if (!meta.children.length){
+    meta.append(el('span','muted','no review · no tags'));
+  }
+  body.append(meta);
+
+  // Format detect
+  const fmtRow = el('div','ds-inspector-row');
+  if (item.error){
+    fmtRow.append(el('span','ds-issue error', 'parse-error'));
+  } else {
+    const fmt = detectRowFormat(item.parsed);
+    fmtRow.append(el('span','muted','format'));
+    fmtRow.append(el('span','ds-chip', FMT_LABEL[fmt] || fmt));
+  }
+  fmtRow.append(el('span','muted','tokens'));
+  fmtRow.append(el('span','ds-chip', String(item.tokens)));
+  body.append(fmtRow);
+
+  // Audit findings (if audit run)
+  if (state.lastAudit){
+    const findings = el('div','ds-inspector-findings');
+    const lints = state.lastAudit.lint?.get(item.origIdx) || [];
+    const piiHits = state.lastAudit.pii?.get(item.origIdx) || [];
+    const isDup = state.lastAudit.dups?.has(item.origIdx);
+    if (!lints.length && !piiHits.length && !isDup){
+      findings.append(el('div','ds-inspector-clean','✓ no findings'));
+    }
+    if (lints.length){
+      const sev = lints.some(i => i.sev === 'error') ? 'error' : 'warn';
+      findings.append(el('div',`ds-inspector-line line-${sev}`,
+        `⚠ ${lints.length} lint: ${lints.slice(0,3).map(i=>i.code).join(', ')}` + (lints.length > 3 ? ', …' : '')));
+    }
+    if (piiHits.length){
+      const types = [...new Set(piiHits.map(h => h.id))];
+      findings.append(el('div','ds-inspector-line line-pii',
+        `🛡 ${piiHits.length} PII: ${types.join(', ')}`));
+    }
+    if (isDup){
+      findings.append(el('div','ds-inspector-line line-dup', '◯ part of a duplicate cluster'));
+    }
+    body.append(findings);
+  } else {
+    body.append(el('div','muted','run audit for findings'));
+  }
+
+  // Quick actions
+  const actions = el('div','ds-inspector-actions');
+  const approveBtn = el('button','mini-btn', '✓ Approve');
+  approveBtn.addEventListener('click', () => { setRowReview(item, item.review === 'approve' ? null : 'approve'); renderDatasetPanel(); });
+  const rejectBtn = el('button','mini-btn warn', '✗ Reject');
+  rejectBtn.addEventListener('click', () => { setRowReview(item, item.review === 'reject' ? null : 'reject'); renderDatasetPanel(); });
+  const diffBtn = el('button','mini-btn', 'Δ Diff');
+  diffBtn.addEventListener('click', () => openDiffActive());
+  const tagBtn = el('button','mini-btn', '+ Tag…');
+  tagBtn.addEventListener('click', () => {
+    const t = prompt('Tag', '');
+    if (t && t.trim()){ toggleRowTag(item, t.trim()); renderDatasetPanel(); }
+  });
+  actions.append(approveBtn, rejectBtn, diffBtn, tagBtn);
+  body.append(actions);
+
+  det.append(body);
   return det;
 }
 

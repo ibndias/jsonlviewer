@@ -140,6 +140,8 @@ export function setActive(origIdx, scroll=true){
       setTimeout(() => card.classList.remove('jumped'), 1200);
     }
   }
+  // Refresh dataset panel so Inspector tracks the active row
+  try { window.__dataset_ui?.renderDatasetPanel?.(); } catch {}
 }
 export function markActive(){
   $list.querySelectorAll('.card.active').forEach(c => c.classList.remove('active'));
