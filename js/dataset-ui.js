@@ -2205,6 +2205,8 @@ export function renderDatasetPanel(){
     ['Δ', 'Diff active row (d)', openDiffActive],
   ]));
 
+  // Persist filters whenever rendered
+  persistFilters();
   // Filter section
   const filt = el('div','ds-panel-sec');
   filt.append(el('div','ds-panel-h','Filter list by review'));
@@ -2374,6 +2376,30 @@ function exportAuditReport(){
 }
 
 const PANEL_STATE_KEY = 'jsonl_viewer_dataset_panel_collapsed_v1';
+const FILTERS_KEY = 'jsonl_viewer_dataset_filters_v1';
+
+function persistFilters(){
+  try {
+    localStorage.setItem(FILTERS_KEY, JSON.stringify({
+      review: [...(state.reviewFilter || [])],
+      tag: [...(state.tagFilter || [])],
+    }));
+  } catch {}
+}
+
+function restoreFilters(){
+  try {
+    const raw = localStorage.getItem(FILTERS_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    if (Array.isArray(obj.review)) state.reviewFilter = new Set(obj.review);
+    if (Array.isArray(obj.tag)) state.tagFilter = new Set(obj.tag);
+  } catch {}
+}
+
+if (typeof window !== 'undefined'){
+  restoreFilters();
+}
 function getCollapsedSet(){
   try {
     const raw = localStorage.getItem(PANEL_STATE_KEY);

@@ -1255,6 +1255,25 @@
   .ds-stale-chip{cursor:pointer; border:0; font-family:var(--mono)}
   .ds-stale-chip:hover{filter:brightness(1.1)}
 
+  /* Mobile responsive */
+  @media (max-width: 720px){
+    .ds-overlay{padding:2vh var(--s-2)}
+    .ds-box{width:100%; max-height:96vh}
+    .ds-head{padding:var(--s-3) var(--s-4)}
+    .ds-body{padding:var(--s-3)}
+    .ds-foot{padding:var(--s-2) var(--s-3)}
+    h2.ds-title{font-size:var(--fs-lg)}
+    .ds-overview-grid{grid-template-columns:1fr 1fr}
+    .ds-controls{gap:var(--s-2)}
+    .ds-controls .num-input{width:64px}
+    .ds-quality{flex-direction:column; align-items:flex-start; gap:var(--s-3)}
+    .ds-quality-ring{width:64px; height:64px}
+  }
+  @media (max-width: 480px){
+    .ds-overview-grid{grid-template-columns:1fr}
+    .ds-quality-ring{width:54px; height:54px}
+  }
+
   /* Density toggle */
   .ds-panel-density{padding-top:var(--s-2)}
   body.ds-compact .ds-panel-btn{padding:3px 6px; font-size:var(--fs-xs)}
