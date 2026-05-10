@@ -594,6 +594,24 @@
     100% { box-shadow:0 0 0 14px transparent; }
   }
   .card.jumped{animation:ds-jump-pulse 1s ease-out}
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration:0.01ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:0.01ms !important;
+      scroll-behavior:auto !important;
+    }
+    .card.jumped{animation:none; outline:2px solid var(--accent); outline-offset:2px}
+  }
+
+  /* Global focus-visible — ensure every keyboard-focusable thing is seen */
+  :focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+    border-radius:var(--r-sm);
+  }
+  .card:focus-visible{outline-offset:0}
   .card header{position:relative; background:transparent; border:0; padding:0; backdrop-filter:none}
   .card-head{
     display:flex; align-items:center; justify-content:space-between;
@@ -977,13 +995,37 @@
 
   /* Modal head + close */
   .ds-title-wrap{display:flex; flex-direction:column; gap:2px}
+  h2.ds-title{
+    margin:0; font:600 var(--fs-xl)/1.2 var(--serif); color:var(--fg);
+    letter-spacing:-.01em;
+  }
   .ds-subtitle{font:var(--fs-sm)/1.3 var(--sans); color:var(--muted)}
   .ds-close-btn{
     background:transparent; color:var(--muted); border:0;
-    width:28px; height:28px; border-radius:var(--r-md);
-    font:400 22px/1 var(--sans); cursor:pointer;
+    width:36px; height:36px; border-radius:var(--r-md);
+    font:400 24px/1 var(--sans); cursor:pointer;
   }
   .ds-close-btn:hover{background:var(--panel-soft); color:var(--fg)}
+
+  /* Skip-to-content link (visible on focus) */
+  .skip-link{
+    position:absolute; top:-100px; left:50%; transform:translateX(-50%);
+    z-index:1000; background:var(--accent); color:var(--bg);
+    padding:var(--s-2) var(--s-4); border-radius:0 0 var(--r-md) var(--r-md);
+    text-decoration:none; font:600 var(--fs-base)/1 var(--sans);
+    transition:top 120ms ease-out;
+  }
+  .skip-link:focus{top:0}
+
+  /* Tier icon (color-blind safety) */
+  .ds-tier-icon{
+    display:inline-block; width:14px; height:14px; border-radius:50%;
+    text-align:center; font:700 11px/14px var(--sans);
+    background:var(--chip); color:var(--fg); margin-right:4px;
+  }
+  .quality-good .ds-tier-icon, .score-good .ds-tier-icon{background:var(--ok); color:#fff}
+  .quality-warn .ds-tier-icon, .score-warn .ds-tier-icon{background:var(--warn); color:#fff}
+  .quality-bad .ds-tier-icon,  .score-bad .ds-tier-icon {background:var(--err); color:#fff}
 
   /* Empty state */
   .ds-empty{
@@ -1035,9 +1077,11 @@
     background:var(--panel-soft); border:1px solid var(--border-soft);
     border-radius:var(--r-md); padding:var(--s-3);
     display:flex; flex-direction:column; gap:var(--s-1);
+    text-align:left; color:var(--fg); font:inherit;
   }
-  .ds-ov-card.clickable{cursor:pointer; transition:border-color .12s}
-  .ds-ov-card.clickable:hover{border-color:var(--accent)}
+  button.ds-ov-card{cursor:pointer}
+  .ds-ov-card.clickable{transition:border-color .12s, background .12s}
+  .ds-ov-card.clickable:hover{border-color:var(--accent); background:var(--panel)}
   .ds-ov-label{font:var(--fs-xs)/1 var(--sans); letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
   .ds-ov-big{font:600 var(--fs-xl)/1 var(--serif); color:var(--fg)}
   .ds-ov-hint{font:var(--fs-sm)/1.4 var(--sans); color:var(--muted)}
@@ -1174,6 +1218,7 @@
 </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <header class="topbar">
     <h1><span class="accent-dot"></span>JSONL Viewer</h1>
     <button class="chip project-chip" id="projectChip" title="Switch project">Untitled &#x25BE;</button>
@@ -1331,7 +1376,7 @@
     </aside>
 
     <!-- Editor area -->
-    <main class="editor">
+    <main class="editor" id="main-content" tabindex="-1">
       <div class="tab-strip" id="tabStrip"></div>
       <div class="editor-body">
         <div id="drop" class="drop">

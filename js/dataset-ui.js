@@ -45,7 +45,7 @@ function openDatasetModal(title, contentEl, opts = {}){
   box.tabIndex = -1;
   const head = el('div', 'ds-head');
   const titleWrap = el('div','ds-title-wrap');
-  titleWrap.append(el('div', 'ds-title', title));
+  titleWrap.append(el('h2', 'ds-title', title));
   if (opts.subtitle) titleWrap.append(el('div', 'ds-subtitle', opts.subtitle));
   head.append(titleWrap);
   const closeBtn = el('button', 'ds-close-btn', '×');
@@ -121,19 +121,25 @@ function snapshotItem(it){
   };
 }
 
+const UNDO_STACK_LIMIT = 10;
+
 // Capture all live items before a bulk destructive op so user can revert.
 function captureBulkUndo(label){
   const beforeMap = new Map();
   for (const it of state.items){
-    if (it.deleted) continue;
+    // Capture every item (including deleted) so true reset is possible.
     beforeMap.set(it.origIdx, snapshotItem(it));
   }
-  state.bulkUndo = { label, beforeMap, ts: Date.now() };
+  if (!Array.isArray(state.bulkUndoStack)) state.bulkUndoStack = [];
+  state.bulkUndoStack.push({ label, beforeMap, ts: Date.now() });
+  while (state.bulkUndoStack.length > UNDO_STACK_LIMIT) state.bulkUndoStack.shift();
 }
 
 function undoBulk(){
-  if (!state.bulkUndo){ showToast('Nothing to undo', 'err'); return; }
-  const { beforeMap, label } = state.bulkUndo;
+  if (!Array.isArray(state.bulkUndoStack) || !state.bulkUndoStack.length){
+    showToast('Nothing to undo', 'err'); return;
+  }
+  const { beforeMap, label } = state.bulkUndoStack.pop();
   for (const [oi, snap] of beforeMap){
     const it = state.items[oi];
     if (!it) continue;
@@ -147,7 +153,6 @@ function undoBulk(){
     recomputeItemMetrics(it);
     rebuildCardInPlace(it);
   }
-  state.bulkUndo = null;
   analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
   decorateAllCards();
   showToast(`Undone: ${label}`);
@@ -261,14 +266,21 @@ function computeQualityScore(prof, stats, audit){
 
 function qualityCard(score, prof, audit){
   const tier = score >= 80 ? 'good' : score >= 60 ? 'warn' : 'bad';
+  const tierIcon = tier === 'good' ? '✓' : tier === 'warn' ? '!' : '✗';
+  const tierLabel = tier === 'good' ? 'Looks healthy' : tier === 'warn' ? 'Needs cleanup' : 'High variance';
   const wrap = el('div', `ds-quality quality-${tier}`);
   const ring = el('div', `ds-quality-ring ring-${tier}`);
   ring.style.setProperty('--score', score);
+  ring.setAttribute('role', 'img');
+  ring.setAttribute('aria-label', `Quality score ${score} of 100, ${tierLabel}`);
   ring.append(el('div','ds-quality-num', String(score)));
   ring.append(el('div','ds-quality-unit', '/ 100'));
   wrap.append(ring);
   const txt = el('div','ds-quality-text');
-  txt.append(el('div','ds-quality-h', score >= 80 ? 'Looks healthy' : score >= 60 ? 'Needs cleanup' : 'High variance'));
+  const h = el('div','ds-quality-h');
+  h.append(el('span','ds-tier-icon', tierIcon));
+  h.append(document.createTextNode(' ' + tierLabel));
+  txt.append(h);
   const bits = [`${(prof.dominantPct*100).toFixed(0)}% conform to ${FMT_LABEL[prof.dominant] || prof.dominant}`];
   if (prof.counts.find(([k])=>k==='parse-error')) bits.push('parse errors present');
   if (audit){
@@ -410,7 +422,11 @@ export function openAuditOverview(){
 }
 
 function overviewCard(label, big, hint, onClick){
-  const c = el('div','ds-ov-card' + (onClick ? ' clickable' : ''));
+  const tag = onClick ? 'button' : 'div';
+  const c = el(tag,'ds-ov-card' + (onClick ? ' clickable' : ''));
+  if (onClick){
+    c.setAttribute('aria-label', `${label}: ${big}. ${hint}. Open detail.`);
+  }
   c.append(el('div','ds-ov-label', label));
   c.append(el('div','ds-ov-big', big));
   c.append(el('div','ds-ov-hint', hint));
@@ -590,13 +606,36 @@ function renderDedupGroups(container, groups, keepMode){
 export function openPIIScrub(){
   if (!ensureFile()) return;
   const wrap = el('div','ds-section');
-  wrap.append(el('div','ds-row','URL is off by default (often desired data). Click match locations to jump.'));
+  wrap.append(el('div','ds-row','Click match locations to jump. Pick a preset or toggle individual patterns.'));
+  // Presets
+  const presets = el('div','ds-controls');
+  presets.append(el('span','muted','Preset:'));
+  const PRESETS = {
+    standard: ['email','phone','ipv4','cc','ssn','apikey','jwt'],
+    strict:   ['email','phone','ipv4','ipv6','cc','ssn','apikey','jwt','url'],
+    permissive: ['ssn','apikey','jwt','cc'],
+  };
+  for (const [name, ids] of Object.entries(PRESETS)){
+    const b = el('button','mini-btn', name);
+    b.addEventListener('click', () => {
+      enabled.clear();
+      for (const id of ids) enabled.add(id);
+      // Sync checkboxes
+      opts.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = enabled.has(cb.dataset.pid);
+      });
+      renderPIIResults(result, enabled);
+    });
+    presets.append(b);
+  }
+  wrap.append(presets);
   const opts = el('div','ds-roles');
-  const enabled = new Set(PII_PATTERNS.map(p => p.id).filter(id => id !== 'url'));
+  const enabled = new Set(PRESETS.standard);
   for (const p of PII_PATTERNS){
     const lab = el('label','ds-pii-opt');
     const cb = document.createElement('input');
     cb.type = 'checkbox';
+    cb.dataset.pid = p.id;
     cb.checked = enabled.has(p.id);
     cb.addEventListener('change', () => {
       if (cb.checked) enabled.add(p.id); else enabled.delete(p.id);
@@ -1762,14 +1801,20 @@ export function renderDatasetPanel(){
   if (state.lastAudit){
     const score = state.lastAudit.score ?? '—';
     const tier = score >= 80 ? 'good' : score >= 60 ? 'warn' : 'bad';
+    const tierIcon = tier === 'good' ? '✓' : tier === 'warn' ? '!' : '✗';
+    const tierLabel = tier === 'good' ? 'healthy' : tier === 'warn' ? 'cleanup' : 'high variance';
     const scoreRow = el('div',`ds-panel-score score-${tier}`);
     scoreRow.title = scoreBreakdownText();
+    scoreRow.setAttribute('aria-label', `Quality score ${score} of 100, ${tierLabel}`);
     const ring = el('div',`ds-panel-ring ring-${tier}`);
     ring.style.setProperty('--score', score === '—' ? 0 : score);
     ring.append(el('span','ds-panel-ring-num', String(score)));
     scoreRow.append(ring);
     const txt = el('div','ds-panel-score-txt');
-    txt.append(el('div','ds-panel-score-h', score >= 80 ? 'healthy' : score >= 60 ? 'cleanup' : 'high variance'));
+    const h = el('div','ds-panel-score-h');
+    h.append(el('span','ds-tier-icon', tierIcon));
+    h.append(document.createTextNode(' ' + tierLabel));
+    txt.append(h);
     txt.append(el('div','ds-panel-score-s', `quality • ${state.lastAudit.stale ? 'stale' : new Date(state.lastAudit.ranAt).toLocaleTimeString()}`));
     scoreRow.append(txt);
     scoreRow.style.cursor = 'help';
@@ -1793,12 +1838,14 @@ export function renderDatasetPanel(){
     root.append(exportBtn);
   }
 
-  // Undo last bulk op
-  if (state.bulkUndo){
+  // Undo stack
+  const stack = Array.isArray(state.bulkUndoStack) ? state.bulkUndoStack : [];
+  if (stack.length){
+    const top = stack[stack.length - 1];
     const u = el('button','mini-btn ds-panel-btn ds-undo-btn');
     u.append(el('span','ds-panel-icon','↶'));
-    u.append(el('span',null, `Undo: ${state.bulkUndo.label}`));
-    u.title = `Captured ${new Date(state.bulkUndo.ts).toLocaleTimeString()}`;
+    u.append(el('span',null, `Undo: ${top.label}` + (stack.length > 1 ? ` (${stack.length} step${stack.length===1?'':'s'})` : '')));
+    u.title = `Captured ${new Date(top.ts).toLocaleTimeString()}\nUndo stack: ${stack.length} step${stack.length===1?'':'s'} (max ${UNDO_STACK_LIMIT})`;
     u.addEventListener('click', () => undoBulk());
     root.append(u);
   }
