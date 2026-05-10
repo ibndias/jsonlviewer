@@ -1,2 +1,6 @@
 .playwright-mcp/
 .worktrees/
+
+# Layout review screenshots (local only)
+*.png
+!screenshots/*.png
