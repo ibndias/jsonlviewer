@@ -122,6 +122,37 @@ function snapshotItem(it){
 }
 
 const UNDO_STACK_LIMIT = 10;
+const UNDO_LS_KEY = 'jsonl_viewer_dataset_undo_v1';
+const UNDO_LS_BUDGET = 1_500_000; // ~1.5 MB cap
+
+function persistUndoStack(){
+  try {
+    const stack = state.bulkUndoStack || [];
+    if (!stack.length){ localStorage.removeItem(UNDO_LS_KEY); return; }
+    // Convert Map → array for serialization. Snapshots include parsed
+    // objects which can be big; budget-cap to avoid quota errors.
+    const ser = stack.map(u => ({
+      label: u.label, ts: u.ts,
+      before: [...u.beforeMap.entries()],
+    }));
+    const text = JSON.stringify(ser);
+    if (text.length > UNDO_LS_BUDGET) return; // skip silently when too big
+    localStorage.setItem(UNDO_LS_KEY, text);
+  } catch {}
+}
+
+function restoreUndoStack(){
+  try {
+    const text = localStorage.getItem(UNDO_LS_KEY);
+    if (!text) return;
+    const ser = JSON.parse(text);
+    if (!Array.isArray(ser)) return;
+    state.bulkUndoStack = ser.map(u => ({
+      label: u.label, ts: u.ts,
+      beforeMap: new Map(u.before),
+    }));
+  } catch {}
+}
 
 // Capture all live items before a bulk destructive op so user can revert.
 function captureBulkUndo(label){
@@ -133,6 +164,7 @@ function captureBulkUndo(label){
   if (!Array.isArray(state.bulkUndoStack)) state.bulkUndoStack = [];
   state.bulkUndoStack.push({ label, beforeMap, ts: Date.now() });
   while (state.bulkUndoStack.length > UNDO_STACK_LIMIT) state.bulkUndoStack.shift();
+  persistUndoStack();
 }
 
 function undoBulk(){
@@ -155,7 +187,13 @@ function undoBulk(){
   }
   analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
   decorateAllCards();
+  persistUndoStack();
   showToast(`Undone: ${label}`);
+}
+
+// Restore on module load (idempotent; skipped if already populated)
+if (typeof window !== 'undefined' && (!state.bulkUndoStack || !state.bulkUndoStack.length)){
+  restoreUndoStack();
 }
 
 function jumpButton(origIdx, label){
@@ -2334,4 +2372,5 @@ if (typeof window !== 'undefined'){
     runAuditSilent,
   };
   window.__dataset_exportAudit = exportAuditReport;
+  window.__dataset_undo = undoBulk;
 }
