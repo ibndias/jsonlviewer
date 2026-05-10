@@ -15,6 +15,12 @@ export function markDirty(item){
     updateDirtyBadge();
   }
   recomputeItemMetrics(item);
+  // Mark audit cache stale so user sees badges may be outdated.
+  if (state.lastAudit) state.lastAudit.stale = true;
+  try {
+    window.__dataset_ui?.renderDatasetPanel?.();
+    window.__dataset_ui?.updateCardReviewUI?.(item);
+  } catch {}
   persistActiveFile();
 }
 window.__edit_markDirty = markDirty;

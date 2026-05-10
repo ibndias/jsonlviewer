@@ -964,6 +964,7 @@
   .audit-badge.audit-error{background:color-mix(in oklab, var(--err) 22%, transparent); color:var(--err)}
   .audit-badge.audit-pii{background:color-mix(in oklab, var(--err) 18%, transparent); color:var(--err)}
   .audit-badge.audit-dup{background:color-mix(in oklab, var(--accent) 18%, transparent); color:var(--accent)}
+  .audit-badge.audit-stale{opacity:.45; text-decoration:line-through}
 
   /* Modal head + close */
   .ds-title-wrap{display:flex; flex-direction:column; gap:2px}
@@ -1026,8 +1027,15 @@
   .ds-ov-big{font:600 var(--fs-xl)/1 var(--serif); color:var(--fg)}
   .ds-ov-hint{font:var(--fs-sm)/1.4 var(--sans); color:var(--muted)}
 
-  .ds-rec-list{margin:0; padding-left:var(--s-5); font:var(--fs-md)/1.5 var(--sans)}
-  .ds-rec-list li{margin-bottom:4px}
+  .ds-rec-list{display:flex; flex-direction:column; gap:var(--s-2)}
+  .ds-rec-row{
+    display:flex; align-items:center; gap:var(--s-3);
+    padding:var(--s-2) var(--s-3);
+    background:var(--panel-soft); border:1px solid var(--border-soft); border-radius:var(--r-md);
+    font:var(--fs-md)/1.4 var(--sans);
+  }
+  .ds-rec-msg{flex:1}
+  .ds-stale-chip{cursor:default}
 
   /* Snippet with PII mark */
   .ds-snippet-row{

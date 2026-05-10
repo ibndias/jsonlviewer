@@ -111,7 +111,7 @@ export function openFormatProfile(){
   const stats = computeStats(items);
   const wrap = el('div', 'ds-section');
 
-  wrap.append(qualityCard(computeQualityScore(prof, stats), prof));
+  wrap.append(qualityCard(computeQualityScore(prof, stats, state.lastAudit), prof, state.lastAudit));
 
   const tbl = el('table', 'ds-table');
   const thr = el('tr');
@@ -161,14 +161,31 @@ export function openFormatProfile(){
   });
 }
 
-function computeQualityScore(prof, stats){
-  const errPct = (prof.counts.find(([k]) => k === 'parse-error')?.[1] || 0) / (prof.total || 1);
+function computeQualityScore(prof, stats, audit){
+  const total = prof.total || 1;
+  const errPct = (prof.counts.find(([k]) => k === 'parse-error')?.[1] || 0) / total;
   const conformPct = prof.dominantPct || 0;
-  const score = Math.max(0, Math.min(1, 0.6 * conformPct + 0.4 * (1 - errPct)));
-  return Math.round(score * 100);
+  // Audit-derived rates (rows-affected / total). Defaults 0 if no audit yet.
+  let lintErrPct = 0, piiPct = 0, dupPct = 0;
+  if (audit){
+    if (audit.lint) for (const issues of audit.lint.values()){
+      if (issues.some(i => i.sev === 'error')){ lintErrPct++; }
+    }
+    lintErrPct = lintErrPct / total;
+    if (audit.pii) piiPct = audit.pii.size / total;
+    if (audit.dups) dupPct = audit.dups.size / total;
+  }
+  // Weighted: conformance (40%), no-parse-errs (15%), no-lint-errs (15%),
+  // no-PII (15%), no-dups (15%). All penalize linearly.
+  const s = 0.40 * conformPct
+          + 0.15 * (1 - errPct)
+          + 0.15 * (1 - lintErrPct)
+          + 0.15 * (1 - piiPct)
+          + 0.15 * (1 - dupPct);
+  return Math.round(Math.max(0, Math.min(1, s)) * 100);
 }
 
-function qualityCard(score, prof){
+function qualityCard(score, prof, audit){
   const wrap = el('div','ds-quality');
   const ring = el('div','ds-quality-ring');
   ring.style.setProperty('--score', score);
@@ -177,9 +194,17 @@ function qualityCard(score, prof){
   wrap.append(ring);
   const txt = el('div','ds-quality-text');
   txt.append(el('div','ds-quality-h', score >= 80 ? 'Looks healthy' : score >= 60 ? 'Needs cleanup' : 'High variance'));
-  txt.append(el('div','ds-quality-d',
-    `${(prof.dominantPct*100).toFixed(0)}% conform to ${FMT_LABEL[prof.dominant] || prof.dominant}.` +
-    (prof.counts.find(([k])=>k==='parse-error') ? ' Parse errors present.' : '')));
+  const bits = [`${(prof.dominantPct*100).toFixed(0)}% conform to ${FMT_LABEL[prof.dominant] || prof.dominant}`];
+  if (prof.counts.find(([k])=>k==='parse-error')) bits.push('parse errors present');
+  if (audit){
+    if (audit.lint && audit.lint.size) bits.push(`${audit.lint.size} rows w/ lint`);
+    if (audit.pii && audit.pii.size) bits.push(`${audit.pii.size} rows w/ PII`);
+    if (audit.dups && audit.dups.size) bits.push(`${audit.dups.size} dup rows`);
+    if (audit.stale) bits.push('cache stale — re-run');
+  } else {
+    bits.push('audit not run');
+  }
+  txt.append(el('div','ds-quality-d', bits.join(' · ') + '.'));
   wrap.append(txt);
   return wrap;
 }
@@ -233,8 +258,8 @@ export function openAuditOverview(){
     decorateAllCards();
 
     wrap.replaceChildren();
-    const score = computeQualityScore(prof, stats);
-    wrap.append(qualityCard(score, prof));
+    const score = computeQualityScore(prof, stats, state.lastAudit);
+    wrap.append(qualityCard(score, prof, state.lastAudit));
 
     const grid = el('div','ds-overview-grid');
     grid.append(overviewCard('Format', `${(prof.dominantPct*100).toFixed(0)}%`, FMT_LABEL[prof.dominant] || prof.dominant, () => { m.close(); openFormatProfile(); }));
@@ -246,15 +271,36 @@ export function openAuditOverview(){
     wrap.append(grid);
 
     const recs = [];
-    if (dupGroups.length) recs.push(`Resolve ${dupGroups.length} duplicate cluster${dupGroups.length===1?'':'s'} before training.`);
-    if (piiTotal) recs.push(`Redact ${piiTotal} PII match${piiTotal===1?'':'es'}.`);
-    if (lints.some(r => r.issues.some(i => i.sev === 'error'))) recs.push('Fix lint errors (parse-error / empty-output).');
-    if (prof.dominantPct < 0.95 && prof.dominant !== 'unknown' && prof.total > 1) recs.push(`Format-convert non-${FMT_LABEL[prof.dominant]} rows for consistency.`);
-    if (!recs.length) recs.push('No blocking issues detected.');
+    if (dupGroups.length) recs.push({
+      msg: `Resolve ${dupGroups.length} duplicate cluster${dupGroups.length===1?'':'s'} before training.`,
+      cta: 'Open dedup', go: () => { m.close(); openDedup(); }
+    });
+    if (piiTotal) recs.push({
+      msg: `Redact ${piiTotal} PII match${piiTotal===1?'':'es'}.`,
+      cta: 'Open PII scrub', go: () => { m.close(); openPIIScrub(); }
+    });
+    if (lints.some(r => r.issues.some(i => i.sev === 'error'))) recs.push({
+      msg: 'Fix lint errors (parse-error / empty-output / empty-instruction).',
+      cta: 'Open lint', go: () => { m.close(); openLint(); }
+    });
+    if (prof.dominantPct < 0.95 && prof.dominant !== 'unknown' && prof.total > 1) recs.push({
+      msg: `Format-convert non-${FMT_LABEL[prof.dominant]} rows for consistency.`,
+      cta: 'Open convert', go: () => { m.close(); openConvert(); }
+    });
+    if (!recs.length) recs.push({ msg: 'No blocking issues detected.' });
     const rec = el('div','ds-section');
     rec.append(el('h3',null,'Recommended next'));
-    const ul = el('ul','ds-rec-list');
-    for (const r of recs) ul.append(el('li',null, r));
+    const ul = el('div','ds-rec-list');
+    for (const r of recs){
+      const row = el('div','ds-rec-row');
+      row.append(el('span','ds-rec-msg', r.msg));
+      if (r.go){
+        const b = el('button','mini-btn ds-rec-cta', r.cta);
+        b.addEventListener('click', r.go);
+        row.append(b);
+      }
+      ul.append(row);
+    }
     rec.append(ul);
     wrap.append(rec);
   }, 30);
@@ -818,15 +864,20 @@ export function openConvert(){
   wrap.append(ctrls, result);
   openDatasetModal('Format convert', wrap, { subtitle: 'ShareGPT / Alpaca / Completion → OpenAI chat (or reverse)' });
 
+  let direction = 'to-openai';
   function convertRow(parsed){
     const fmt = detectRowFormat(parsed);
-    if (fmt === 'sharegpt') return shareGPTToOpenAI(parsed);
-    if (fmt === 'alpaca') return alpacaToOpenAI(parsed);
-    if (fmt === 'completion') return completionToOpenAI(parsed);
+    if (direction === 'to-openai'){
+      if (fmt === 'sharegpt') return shareGPTToOpenAI(parsed);
+      if (fmt === 'alpaca') return alpacaToOpenAI(parsed);
+      if (fmt === 'completion') return completionToOpenAI(parsed);
+      return null;
+    }
+    // to-sharegpt
+    if (fmt === 'openai-chat' || fmt === 'openai-chat-loose') return openAIToShareGPT(parsed);
     return null;
   }
-
-  previewBtn.addEventListener('click', () => {
+  function renderPreview(){
     result.replaceChildren();
     let willConvert = 0, willSkip = 0;
     const previews = [];
@@ -849,9 +900,11 @@ export function openConvert(){
       cl.append(el('pre','ds-pre', JSON.stringify(p.after, null, 2).slice(0, 800)));
       result.append(cl);
     }
-  });
+  }
+  previewBtn.addEventListener('click', () => { direction = 'to-openai'; renderPreview(); });
 
   runBtn.addEventListener('click', async () => {
+    direction = 'to-openai';
     const ok = await confirmModal({title:'Convert all → OpenAI chat?', body:'Edits become unsaved. Save to commit.', okLabel:'Convert'});
     if (!ok) return;
     let n = 0, skipped = 0;
@@ -866,16 +919,18 @@ export function openConvert(){
     showToast(n ? `Converted ${n} row${n===1?'':'s'} • ${skipped} skipped` : `Nothing to convert (${skipped} skipped)`, n ? '' : 'err');
   });
 
-  sharegptBtn.addEventListener('click', async () => {
-    const ok = await confirmModal({title:'OpenAI → ShareGPT?', body:'Maps messages[] → conversations[].', okLabel:'Convert'});
+  // Shift-click on the ShareGPT button → preview that direction; plain click = apply.
+  sharegptBtn.addEventListener('click', async (e) => {
+    direction = 'to-sharegpt';
+    if (e.shiftKey){ renderPreview(); return; }
+    const ok = await confirmModal({title:'OpenAI → ShareGPT?', body:'Maps messages[] → conversations[]. Shift-click for preview first.', okLabel:'Convert'});
     if (!ok) return;
     let n = 0, skipped = 0;
     for (const it of liveItems()){
       if (it.error){ skipped++; continue; }
-      const fmt = detectRowFormat(it.parsed);
-      if (fmt !== 'openai-chat' && fmt !== 'openai-chat-loose'){ skipped++; continue; }
-      it.parsed = openAIToShareGPT(it.parsed);
-      it.dirty = true;
+      const next = convertRow(it.parsed);
+      if (!next){ skipped++; continue; }
+      it.parsed = next; it.dirty = true;
       recomputeItemMetrics(it); rebuildCardInPlace(it); n++;
     }
     analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
@@ -1144,12 +1199,13 @@ export function openBulkTransform(){
     const ok = await confirmModal({title:'Apply transform?',
       body:`Will edit all matching rows. Save to commit. Ops: ${ops.length}`, okLabel:'Apply'});
     if (!ok) return;
-    let touched = 0;
+    let touched = 0, errored = 0;
+    let firstErr = null;
     for (const it of liveItems()){
       if (it.error) continue;
       let next;
       try { next = applyOps(it.parsed, ops); }
-      catch (e) { continue; }
+      catch (e) { errored++; if (!firstErr) firstErr = String(e.message || e); continue; }
       if (JSON.stringify(next) !== JSON.stringify(it.parsed)){
         it.parsed = next;
         it.dirty = true;
@@ -1157,6 +1213,10 @@ export function openBulkTransform(){
         rebuildCardInPlace(it);
         touched++;
       }
+    }
+    if (errored){
+      showToast(`Skipped ${errored} row${errored===1?'':'s'}: ${firstErr}`, 'err');
+      return;
     }
     analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
     showToast(`Transform applied to ${touched} row${touched===1?'':'s'}`);
@@ -1198,10 +1258,14 @@ function truncJSON(v){
 
 /* ---------- Tagging / Review ---------- */
 
-export function knownTags(){
+export function knownTags(opts = {}){
+  const includeInternal = !!opts.includeInternal;
   const set = new Set();
   for (const it of liveItems()){
-    for (const t of (it.tags || [])) set.add(t);
+    for (const t of (it.tags || [])){
+      if (!includeInternal && t.startsWith('_')) continue;
+      set.add(t);
+    }
   }
   return [...set].sort();
 }
@@ -1230,25 +1294,27 @@ export function updateCardReviewUI(item){
     head.append(b);
   }
   for (const t of item.tags || []){
+    if (t.startsWith('_')) continue; // internal markers (e.g., #_dup)
     head.append(el('span','tag-badge', '#' + t));
   }
   if (state.lastAudit){
+    const stale = state.lastAudit.stale ? ' audit-stale' : '';
     const lints = state.lastAudit.lint?.get(item.origIdx) || [];
     if (lints.length){
       const sev = lints.some(i => i.sev === 'error') ? 'error' : 'warn';
-      const b = el('span', `audit-badge audit-${sev}`, `⚠ ${lints.length} lint`);
-      b.title = lints.slice(0,4).map(i => i.code).join(', ');
+      const b = el('span', `audit-badge audit-${sev}${stale}`, `⚠ ${lints.length} lint`);
+      b.title = (state.lastAudit.stale ? '(audit stale) ' : '') + lints.slice(0,4).map(i => i.code).join(', ');
       head.append(b);
     }
     const piiHits = state.lastAudit.pii?.get(item.origIdx);
     if (piiHits && piiHits.length){
       const types = [...new Set(piiHits.map(h => h.id))];
-      const b = el('span', 'audit-badge audit-pii', `🛡 ${piiHits.length} PII`);
-      b.title = types.join(', ');
+      const b = el('span', `audit-badge audit-pii${stale}`, `🛡 ${piiHits.length} PII`);
+      b.title = (state.lastAudit.stale ? '(audit stale) ' : '') + types.join(', ');
       head.append(b);
     }
     if (state.lastAudit.dups?.has(item.origIdx)){
-      head.append(el('span', 'audit-badge audit-dup', '◯ dup'));
+      head.append(el('span', `audit-badge audit-dup${stale}`, '◯ dup'));
     }
   }
 }
@@ -1286,11 +1352,12 @@ export function openTagging(){
 
   // Bulk
   const bulkSec = el('div','ds-section');
-  bulkSec.append(el('h3',null,'Bulk on visible rows'));
+  const visibleCount = state.viewItems.length;
+  bulkSec.append(el('h3',null, `Bulk on visible rows (${visibleCount})`));
   const ctrls = el('div','ds-controls');
-  const approveAll = el('button','btn','Approve all visible');
-  const rejectAll = el('button','btn warn','Reject all visible');
-  const clearReview = el('button','btn','Clear review on visible');
+  const approveAll = el('button','btn',`Approve ${visibleCount}`);
+  const rejectAll = el('button','btn warn',`Reject ${visibleCount}`);
+  const clearReview = el('button','btn',`Clear review on ${visibleCount}`);
   ctrls.append(approveAll, rejectAll, clearReview);
   bulkSec.append(ctrls);
 
@@ -1306,8 +1373,8 @@ export function openTagging(){
   for (const t of knownTags()){
     const o = document.createElement('option'); o.value = t; tagDL.append(o);
   }
-  const addTag = el('button','btn','Tag visible');
-  const removeTag = el('button','btn','Untag visible');
+  const addTag = el('button','btn',`Tag ${visibleCount}`);
+  const removeTag = el('button','btn',`Untag ${visibleCount}`);
   tagBox.append(addTag, removeTag);
   bulkSec.append(tagBox);
 
@@ -1444,6 +1511,9 @@ export function renderDatasetPanel(){
     live.append(el('span', `ds-chip ${lintN ? 'sev-warn' : ''}`, `lint: ${lintN}`));
     live.append(el('span', `ds-chip ${piiN ? 'sev-warn' : ''}`, `PII: ${piiN}`));
     live.append(el('span', `ds-chip ${dupN ? 'sev-warn' : ''}`, `dup: ${dupN}`));
+    if (state.lastAudit.stale){
+      live.append(el('span', 'ds-chip sev-warn ds-stale-chip', 'stale — re-run'));
+    }
     root.append(live);
   }
 
@@ -1474,7 +1544,7 @@ export function renderDatasetPanel(){
   const filt = el('div','ds-panel-sec');
   filt.append(el('div','ds-panel-h','Filter list by review'));
   const reviewRow = el('div','ds-roles ds-filter-row');
-  for (const [v, lab] of [['approve','✓ approved'],['reject','✗ rejected'],['todo','? todo'],['none','– untagged']]){
+  for (const [v, lab] of [['approve','✓ approved'],['reject','✗ rejected'],['todo','? todo'],['none','– no review']]){
     const c = el('button','ds-filter-chip' + (state.reviewFilter.has(v) ? ' active' : ''), lab);
     c.addEventListener('click', () => {
       if (state.reviewFilter.has(v)) state.reviewFilter.delete(v);
