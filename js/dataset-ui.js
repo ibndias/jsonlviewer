@@ -1967,6 +1967,26 @@ function toggleInlineIssues(item, kind){
 export function decorateAllCards(){
   for (const it of state.items) if (it._cardEl) updateCardReviewUI(it);
   renderDatasetPanel();
+  decorateActivityBar();
+}
+
+function decorateActivityBar(){
+  const btn = document.querySelector('.act-btn[data-panel="dataset"]');
+  if (!btn) return;
+  let dot = btn.querySelector('.act-dot');
+  let totalFindings = 0;
+  if (state.lastAudit){
+    totalFindings = (state.lastAudit.lint?.size || 0)
+                  + (state.lastAudit.pii?.size || 0)
+                  + (state.lastAudit.dups?.size || 0);
+  }
+  if (totalFindings > 0){
+    if (!dot){ dot = el('span','act-dot'); btn.append(dot); }
+    dot.textContent = totalFindings > 99 ? '99+' : String(totalFindings);
+    dot.title = `${totalFindings} finding${totalFindings===1?'':'s'} across rows`;
+  } else if (dot){
+    dot.remove();
+  }
 }
 
 export function openTagging(){

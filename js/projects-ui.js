@@ -292,8 +292,13 @@ export function refreshStatusBar(){
     const tier = sc >= 80 ? 'good' : sc >= 60 ? 'warn' : 'bad';
     const chip = document.createElement('span');
     chip.className = `status-score score-${tier}` + (state.lastAudit.stale ? ' stale' : '');
-    chip.title = state.lastAudit.stale ? 'Audit stale — re-run to refresh' : `Quality score · ${new Date(state.lastAudit.ranAt).toLocaleTimeString()}`;
+    chip.title = (state.lastAudit.stale ? 'Audit stale — re-run to refresh' : `Quality score · ${new Date(state.lastAudit.ranAt).toLocaleTimeString()}`) + '\nClick for audit overview';
     chip.textContent = `quality ${sc}`;
+    chip.style.cursor = 'pointer';
+    chip.tabIndex = 0;
+    chip.setAttribute('role','button');
+    chip.addEventListener('click', () => window.__dataset_ui?.openAuditOverview?.());
+    chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); window.__dataset_ui?.openAuditOverview?.(); } });
     bar.append(document.createTextNode('  ·  '));
     bar.append(chip);
   }
