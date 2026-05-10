@@ -178,6 +178,11 @@ export async function loadFile(file, opts={}){
   $drop.classList.add('compact');
   $drop.style.display = 'none';
 
+  // Auto-run audit on small datasets so the panel score is ambient.
+  if (state.items.length && state.items.length <= 5000){
+    setTimeout(() => { try { window.__dataset_ui?.runAuditSilent?.(); } catch {} }, 50);
+  }
+
   // Persist to IDB unless suppressed (cache restore path).
   if (!opts.suppressFlush){
     try {

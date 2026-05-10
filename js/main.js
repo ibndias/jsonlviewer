@@ -442,6 +442,11 @@ document.addEventListener('keydown', (e) => {
       openDiffActive();
       break;
     }
+    case '?': {
+      e.preventDefault();
+      window.__dataset_ui?.openShortcutsCheatsheet?.();
+      break;
+    }
   }
 });
 /* Beforeunload warning when dirty (skip in test mode via ?test=1) */

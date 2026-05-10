@@ -36,8 +36,13 @@ const FMT_LABEL = {
 /* ---------- Generic dataset modal helper ---------- */
 
 function openDatasetModal(title, contentEl, opts = {}){
+  const prevFocus = document.activeElement;
   const overlay = el('div', 'ds-overlay');
   const box = el('div', 'ds-box');
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  box.setAttribute('aria-label', title);
+  box.tabIndex = -1;
   const head = el('div', 'ds-head');
   const titleWrap = el('div','ds-title-wrap');
   titleWrap.append(el('div', 'ds-title', title));
@@ -57,12 +62,37 @@ function openDatasetModal(title, contentEl, opts = {}){
   box.append(head, body, foot);
   overlay.append(box);
   document.body.append(overlay);
-  const close = () => overlay.remove();
+  const close = () => {
+    overlay.remove();
+    if (prevFocus && typeof prevFocus.focus === 'function'){
+      try { prevFocus.focus(); } catch {}
+    }
+  };
   closeBtn.addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  // Initial focus to first focusable inside body, else dialog itself.
+  setTimeout(() => {
+    const firstFocusable = box.querySelector('input, textarea, button, select, [tabindex]:not([tabindex="-1"])');
+    (firstFocusable || box).focus();
+  }, 0);
   document.addEventListener('keydown', function onKey(e){
     if (!overlay.isConnected){ document.removeEventListener('keydown', onKey, true); return; }
-    if (e.key === 'Escape'){ e.preventDefault(); close(); document.removeEventListener('keydown', onKey, true); }
+    if (e.key === 'Escape'){
+      e.preventDefault(); close(); document.removeEventListener('keydown', onKey, true); return;
+    }
+    if (e.key === 'Tab'){
+      // Focus trap inside modal
+      const focusables = [...box.querySelectorAll('input, textarea, button, select, [tabindex]:not([tabindex="-1"])')]
+        .filter(el => !el.disabled && el.offsetParent !== null);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first){
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last){
+        e.preventDefault(); first.focus();
+      }
+    }
   }, true);
   return { overlay, body, foot, close };
 }
@@ -230,6 +260,31 @@ function histogram(buckets){
 
 /* ---------- Audit overview ---------- */
 
+// Run audits silently (no modal) and refresh panel + cards.
+export function runAuditSilent(){
+  if (!state.items.length) return;
+  const items = state.items;
+  const prof = profileDataset(items);
+  const stats = computeStats(items);
+  const lints = lintAll(items);
+  const dupGroups = exactDedup(items, rowText);
+  const piiByRow = new Map();
+  for (const it of liveItems()){
+    const text = it.error ? it.rawText : JSON.stringify(it.parsed);
+    const hits = scanPII(text);
+    if (hits.length) piiByRow.set(it.origIdx, hits);
+  }
+  const lintMap = new Map();
+  for (const r of lints) lintMap.set(r.origIdx, r.issues);
+  const dupSet = new Set();
+  for (const g of dupGroups) for (const i of g) dupSet.add(i);
+  state.lastAudit = { lint: lintMap, pii: piiByRow, dups: dupSet, ranAt: Date.now() };
+  state.lastAudit.score = computeQualityScore(prof, stats, state.lastAudit);
+  state.lastAudit.dominant = prof.dominant;
+  state.lastAudit.dominantPct = prof.dominantPct;
+  decorateAllCards();
+}
+
 export function openAuditOverview(){
   if (!ensureFile()) return;
   const wrap = el('div','ds-section');
@@ -367,15 +422,30 @@ export function openDedup(){
 
   openDatasetModal('Find duplicates', wrap, { subtitle: 'Exact via FNV-1a · Near via 64-bit simhash + Hamming' });
 
+  // Smart default: if dataset is chat, scope to assistant text (more useful);
+  // otherwise keep exact-row.
+  const prof = profileDataset(state.items);
+  if (prof.dominant === 'openai-chat' || prof.dominant === 'sharegpt'){
+    mode.value = 'exact-assistant';
+  }
+
   runBtn.addEventListener('click', () => {
     const items = state.items;
-    let groups;
     const m1 = mode.value;
-    if (m1 === 'exact-row') groups = exactDedup(items, rowText);
-    else if (m1 === 'exact-assistant') groups = exactDedup(items, rowAssistantText);
-    else if (m1 === 'near-row') groups = nearDedup(items, rowText, +ham.value || 4);
-    else groups = nearDedup(items, rowAssistantText, +ham.value || 4);
-    renderDedupGroups(result, groups, keep.value);
+    const isNear = m1.startsWith('near-');
+    if (items.length > 500 || isNear){
+      result.replaceChildren();
+      result.append(el('div','ds-row muted', `Hashing ${items.length} rows…`));
+      setTimeout(runOnce, 30);
+    } else runOnce();
+    function runOnce(){
+      let groups;
+      if (m1 === 'exact-row') groups = exactDedup(items, rowText);
+      else if (m1 === 'exact-assistant') groups = exactDedup(items, rowAssistantText);
+      else if (m1 === 'near-row') groups = nearDedup(items, rowText, +ham.value || 4);
+      else groups = nearDedup(items, rowAssistantText, +ham.value || 4);
+      renderDedupGroups(result, groups, keep.value);
+    }
   });
 }
 
@@ -669,7 +739,14 @@ export function openLint(){
 
   openDatasetModal('Lint dataset', wrap, { subtitle: 'Format conformance + structural sanity per row' });
 
-  const run = () => {
+  function withSpinner(label, fn){
+    if (state.items.length > 500){
+      result.replaceChildren();
+      result.append(el('div','ds-row muted', `${label} ${state.items.length} rows…`));
+      setTimeout(fn, 30);
+    } else fn();
+  }
+  const run = () => withSpinner('Linting', () => {
     const all = lintAll(state.items);
     const lintMap = new Map();
     for (const r of all) lintMap.set(r.origIdx, r.issues);
@@ -716,7 +793,7 @@ export function openLint(){
     }
     if (all.length > 500) list.append(el('div','side-empty', `… and ${all.length - 500} more`));
     result.append(list);
-  };
+  });
   run();
   runBtn.addEventListener('click', run);
 
@@ -1324,21 +1401,78 @@ export function updateCardReviewUI(item){
     const lints = state.lastAudit.lint?.get(item.origIdx) || [];
     if (lints.length){
       const sev = lints.some(i => i.sev === 'error') ? 'error' : 'warn';
-      const b = el('span', `audit-badge audit-${sev}${stale}`, `⚠ ${lints.length} lint`);
-      b.title = (state.lastAudit.stale ? '(audit stale) ' : '') + lints.slice(0,4).map(i => i.code).join(', ');
+      const b = el('button', `audit-badge audit-${sev}${stale}`, `⚠ ${lints.length} lint`);
+      b.title = (state.lastAudit.stale ? '(audit stale) ' : '') + 'Click to expand: ' + lints.slice(0,4).map(i => i.code).join(', ');
+      b.addEventListener('click', (e) => { e.stopPropagation(); toggleInlineIssues(item, 'lint'); });
       head.append(b);
     }
     const piiHits = state.lastAudit.pii?.get(item.origIdx);
     if (piiHits && piiHits.length){
       const types = [...new Set(piiHits.map(h => h.id))];
-      const b = el('span', `audit-badge audit-pii${stale}`, `🛡 ${piiHits.length} PII`);
-      b.title = (state.lastAudit.stale ? '(audit stale) ' : '') + types.join(', ');
+      const b = el('button', `audit-badge audit-pii${stale}`, `🛡 ${piiHits.length} PII`);
+      b.title = (state.lastAudit.stale ? '(audit stale) ' : '') + 'Click to expand: ' + types.join(', ');
+      b.addEventListener('click', (e) => { e.stopPropagation(); toggleInlineIssues(item, 'pii'); });
       head.append(b);
     }
     if (state.lastAudit.dups?.has(item.origIdx)){
-      head.append(el('span', `audit-badge audit-dup${stale}`, '◯ dup'));
+      const b = el('button', `audit-badge audit-dup${stale}`, '◯ dup');
+      b.title = 'Click to find this row\'s cluster';
+      b.addEventListener('click', (e) => { e.stopPropagation(); openDedup(); });
+      head.append(b);
     }
   }
+}
+
+function toggleInlineIssues(item, kind){
+  const card = item._cardEl;
+  if (!card) return;
+  const existing = card.querySelector(`.ds-inline-issues[data-kind="${kind}"]`);
+  if (existing){ existing.remove(); return; }
+  // Remove other kind first (only one expanded at a time)
+  card.querySelectorAll('.ds-inline-issues').forEach(n => n.remove());
+  const wrap = el('div','ds-inline-issues');
+  wrap.dataset.kind = kind;
+  if (kind === 'lint'){
+    const issues = state.lastAudit.lint?.get(item.origIdx) || [];
+    wrap.append(el('div','ds-inline-h', `Lint issues (${issues.length})`));
+    for (const i of issues){
+      const row = el('div','ds-pii-row-head');
+      row.append(el('span',`ds-issue ${i.sev}`, i.code));
+      row.append(el('span','ds-pii-field', i.msg));
+      wrap.append(row);
+    }
+  } else if (kind === 'pii'){
+    const hits = state.lastAudit.pii?.get(item.origIdx) || [];
+    wrap.append(el('div','ds-inline-h', `PII matches (${hits.length})`));
+    const byPattern = new Map();
+    for (const h of hits){
+      if (!byPattern.has(h.id)) byPattern.set(h.id, []);
+      byPattern.get(h.id).push(h);
+    }
+    for (const [id, arr] of byPattern){
+      const head = el('div','ds-pii-row-head');
+      head.append(el('span','ds-issue warn', id));
+      head.append(el('span','muted', ` ${arr.length} match${arr.length===1?'':'es'}`));
+      wrap.append(head);
+    }
+    const redactBtn = el('button','mini-btn warn','Redact this row');
+    redactBtn.addEventListener('click', () => {
+      if (item.error){
+        const r = redactPII(item.rawText);
+        if (r.count){ item.rawText = r.text; item.dirty = true; recomputeItemMetrics(item); rebuildCardInPlace(item); }
+      } else {
+        const [next, n] = redactJSON(item.parsed);
+        if (n){ item.parsed = next; item.dirty = true; recomputeItemMetrics(item); rebuildCardInPlace(item); }
+      }
+      analyzeSchema(); renderSidebar(); renderView(); updateDirtyBadge();
+      showToast('Row redacted');
+    });
+    wrap.append(redactBtn);
+  }
+  // Insert before .body so it sits between header and tree
+  const body = card.querySelector(':scope > .body');
+  if (body) card.insertBefore(wrap, body);
+  else card.append(wrap);
 }
 
 export function decorateAllCards(){
@@ -1472,6 +1606,51 @@ export function openTagging(){
   });
 }
 
+/* ---------- Keyboard shortcut cheatsheet ---------- */
+
+export function openShortcutsCheatsheet(){
+  const wrap = el('div','ds-section');
+  wrap.append(el('div','ds-row','All shortcuts. Press Escape to close.'));
+  const groups = [
+    ['Navigation', [
+      ['/', 'Focus search'],
+      ['n / j', 'Next row'],
+      ['p / k', 'Previous row'],
+      ['e', 'Expand all in active row'],
+      ['c', 'Collapse all in active row'],
+      ['Ctrl/⌘ + B', 'Toggle side bar'],
+    ]],
+    ['Review (active row)', [
+      ['a', 'Toggle approve'],
+      ['r', 'Toggle reject'],
+      ['t', 'Toggle todo'],
+      ['d', 'Diff vs original'],
+      ['x', 'Toggle exclude from export'],
+      ['Delete / Backspace', 'Delete row'],
+    ]],
+    ['Files / commands', [
+      ['Ctrl/⌘ + S', 'Save active file'],
+      ['Ctrl/⌘ + P', 'Quick open'],
+      ['Ctrl/⌘ + ⇧ + P', 'Command palette'],
+    ]],
+    ['Help', [
+      ['?', 'Show this cheatsheet'],
+    ]],
+  ];
+  for (const [title, rows] of groups){
+    const sec = el('div','ds-cluster');
+    sec.append(el('div','ds-cluster-head', title));
+    for (const [k, msg] of rows){
+      const row = el('div','ds-shortcut-row');
+      row.append(el('kbd','ds-kbd', k));
+      row.append(el('span','ds-shortcut-msg', msg));
+      sec.append(row);
+    }
+    wrap.append(sec);
+  }
+  openDatasetModal('Keyboard shortcuts', wrap, { subtitle: 'Press ? anywhere to open this' });
+}
+
 /* ---------- Diff (per-row vs original) ---------- */
 
 export function openDiffActive(){
@@ -1527,14 +1706,16 @@ export function renderDatasetPanel(){
   if (state.lastAudit){
     const score = state.lastAudit.score ?? '—';
     const scoreRow = el('div','ds-panel-score');
+    scoreRow.title = scoreBreakdownText();
     const ring = el('div','ds-panel-ring');
-    ring.style.setProperty('--score', score);
+    ring.style.setProperty('--score', score === '—' ? 0 : score);
     ring.append(el('span','ds-panel-ring-num', String(score)));
     scoreRow.append(ring);
     const txt = el('div','ds-panel-score-txt');
     txt.append(el('div','ds-panel-score-h', score >= 80 ? 'healthy' : score >= 60 ? 'cleanup' : 'high variance'));
     txt.append(el('div','ds-panel-score-s', `quality • ${state.lastAudit.stale ? 'stale' : new Date(state.lastAudit.ranAt).toLocaleTimeString()}`));
     scoreRow.append(txt);
+    scoreRow.style.cursor = 'help';
     root.append(scoreRow);
 
     const live = el('div','ds-panel-live');
@@ -1629,6 +1810,15 @@ export function renderDatasetPanel(){
       renderDatasetPanel();
     });
     filt.append(clear);
+    const saveFiltered = el('button','mini-btn ds-panel-btn',`⤓ Save ${state.viewItems.length} filtered as JSONL`);
+    saveFiltered.addEventListener('click', () => {
+      const items = state.viewItems.filter(it => !it.excluded && !it.deleted);
+      if (!items.length){ showToast('No rows in filter', 'err'); return; }
+      const lines = items.map(it => exportRawFor(it)).filter(Boolean);
+      downloadText(`${baseName()}-filtered-${items.length}.jsonl`, lines.join('\n') + '\n', 'application/jsonl');
+      showToast(`Downloaded ${items.length} filtered row${items.length===1?'':'s'}`);
+    });
+    filt.append(saveFiltered);
   }
   root.append(filt);
 
@@ -1646,6 +1836,25 @@ export function renderDatasetPanel(){
   root.append(counts);
 
   root.append(el('div','ds-panel-hint','a / r / t · review · d · diff'));
+}
+
+function scoreBreakdownText(){
+  const a = state.lastAudit;
+  if (!a) return 'No audit run.';
+  const total = state.items.filter(it => !it.deleted).length || 1;
+  const lintErrRows = [...(a.lint?.values() || [])].filter(issues => issues.some(i => i.sev === 'error')).length;
+  const piiRows = a.pii?.size || 0;
+  const dupRows = a.dups?.size || 0;
+  const fmtPct = (a.dominantPct || 0) * 100;
+  return [
+    `Quality score = ${a.score}/100`,
+    `─ formula: 40% format conformance + 15% × 4 absence-of-defect terms`,
+    `• Format: ${fmtPct.toFixed(0)}% conform to ${FMT_LABEL[a.dominant] || a.dominant}`,
+    `• Lint errors: ${lintErrRows}/${total} rows`,
+    `• PII rows: ${piiRows}/${total}`,
+    `• Duplicate rows: ${dupRows}/${total}`,
+    a.stale ? '⚠ cache is STALE — re-run audit' : `Ran: ${new Date(a.ranAt).toLocaleString()}`
+  ].join('\n');
 }
 
 function exportAuditReport(){
@@ -1709,9 +1918,10 @@ if (typeof window !== 'undefined'){
   window.__dataset_ui = {
     openFormatProfile, openDedup, openPIIScrub, openLint, openSchemaValidate,
     openConvert, openSplit, openLeakage, openBulkTransform, openTagging,
-    openDiffActive, openAuditOverview,
+    openDiffActive, openAuditOverview, openShortcutsCheatsheet,
     renderDatasetPanel, setRowReview, toggleRowTag, updateCardReviewUI,
     decorateAllCards, knownTags,
+    runAuditSilent,
   };
   window.__dataset_exportAudit = exportAuditReport;
 }

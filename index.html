@@ -1085,6 +1085,30 @@
   .ds-diff-to{color:var(--ok); word-break:break-all}
   .ds-diff-arrow{color:var(--muted-2)}
 
+  /* Inline audit issues (revealed by clicking card badge) */
+  .ds-inline-issues{
+    margin:0 var(--s-3) var(--s-2);
+    padding:var(--s-3);
+    background:var(--bg-soft); border:1px solid var(--border-soft); border-radius:var(--r-md);
+    display:flex; flex-direction:column; gap:var(--s-2);
+  }
+  .ds-inline-h{font:600 var(--fs-sm)/1 var(--sans); color:var(--muted); letter-spacing:.04em; text-transform:uppercase}
+
+  /* Audit badges as buttons (clickable) */
+  button.audit-badge{cursor:pointer; border:0; outline-offset:2px}
+  button.audit-badge:hover{filter:brightness(1.08)}
+
+  /* Cheatsheet kbd */
+  .ds-shortcut-row{display:flex; gap:var(--s-3); align-items:baseline; padding:var(--s-1) 0; font:var(--fs-sm)/1.4 var(--sans)}
+  .ds-kbd{
+    display:inline-block; min-width:48px;
+    padding:2px 6px; background:var(--chip); border:1px solid var(--border);
+    border-radius:var(--r-sm);
+    font:var(--fs-xs)/1.2 var(--mono); color:var(--fg);
+    text-align:center;
+  }
+  .ds-shortcut-msg{color:var(--fg)}
+
   /* Side panel: audit btn + filter chips + live counts */
   .ds-audit-btn{
     width:100%; justify-content:flex-start; display:flex; gap:var(--s-2);
