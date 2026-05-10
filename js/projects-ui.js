@@ -285,7 +285,15 @@ export function refreshStatusBar(){
   const proj = getActiveProject();
   const fileCount = state.files.length;
   bar.replaceChildren();
-  bar.append(document.createTextNode(`${proj ? proj.name : 'Untitled'}  ·  ${fileCount} ${fileCount === 1 ? 'file' : 'files'}`));
+  const projSpan = document.createElement('span');
+  projSpan.textContent = `${proj ? proj.name : 'Untitled'}`;
+  bar.append(projSpan);
+  const sep1 = document.createElement('span');
+  sep1.className = 'status-sep';
+  bar.append(sep1);
+  const fileSpan = document.createElement('span');
+  fileSpan.textContent = `${fileCount} ${fileCount === 1 ? 'file' : 'files'}`;
+  bar.append(fileSpan);
   // Audit score chip
   if (state.lastAudit && typeof state.lastAudit.score === 'number'){
     const sc = state.lastAudit.score;
@@ -299,7 +307,9 @@ export function refreshStatusBar(){
     chip.setAttribute('role','button');
     chip.addEventListener('click', () => window.__dataset_ui?.openAuditOverview?.());
     chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); window.__dataset_ui?.openAuditOverview?.(); } });
-    bar.append(document.createTextNode('  ·  '));
+    const sep2 = document.createElement('span');
+    sep2.className = 'status-sep';
+    bar.append(sep2);
     bar.append(chip);
   }
 }

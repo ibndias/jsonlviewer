@@ -733,42 +733,60 @@ export function openPIIScrub(){
   if (!ensureFile()) return;
   const wrap = el('div','ds-section');
   wrap.append(el('div','ds-row','Click match locations to jump. Pick a preset or toggle individual patterns.'));
-  // Presets
-  const presets = el('div','ds-controls');
-  presets.append(el('span','muted','Preset:'));
+  // Presets — segmented control
   const PRESETS = {
     standard: ['email','phone','ipv4','cc','ssn','apikey','jwt'],
     strict:   ['email','phone','ipv4','ipv6','cc','ssn','apikey','jwt','url'],
     permissive: ['ssn','apikey','jwt','cc'],
   };
+  const PII_GROUPS = {
+    'Identifiers': ['email','phone','ssn'],
+    'Network': ['ipv4','ipv6','url'],
+    'Secrets': ['apikey','jwt','cc'],
+  };
+  const presets = el('div','ds-controls');
+  presets.append(el('span','muted','Preset:'));
+  const segGroup = el('div','ds-segmented');
+  let activePreset = 'standard';
   for (const [name, ids] of Object.entries(PRESETS)){
-    const b = el('button','mini-btn', name);
+    const b = el('button',`ds-seg-btn ${name === activePreset ? 'active' : ''}`, name);
     b.addEventListener('click', () => {
+      activePreset = name;
       enabled.clear();
       for (const id of ids) enabled.add(id);
-      // Sync checkboxes
+      segGroup.querySelectorAll('.ds-seg-btn').forEach(x => x.classList.toggle('active', x.textContent === name));
       opts.querySelectorAll('input[type="checkbox"]').forEach(cb => {
         cb.checked = enabled.has(cb.dataset.pid);
       });
       renderPIIResults(result, enabled);
     });
-    presets.append(b);
+    segGroup.append(b);
   }
+  presets.append(segGroup);
   wrap.append(presets);
-  const opts = el('div','ds-roles');
+  const opts = el('div','ds-pii-groups');
   const enabled = new Set(PRESETS.standard);
-  for (const p of PII_PATTERNS){
-    const lab = el('label','ds-pii-opt');
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.dataset.pid = p.id;
-    cb.checked = enabled.has(p.id);
-    cb.addEventListener('change', () => {
-      if (cb.checked) enabled.add(p.id); else enabled.delete(p.id);
-      renderPIIResults(result, enabled);
-    });
-    lab.append(cb, document.createTextNode(' ' + p.id));
-    opts.append(lab);
+  for (const [groupName, ids] of Object.entries(PII_GROUPS)){
+    const grp = el('div','ds-pii-group');
+    grp.append(el('div','ds-pii-group-label', groupName));
+    const row = el('div','ds-roles');
+    for (const id of ids){
+      const p = PII_PATTERNS.find(x => x.id === id);
+      if (!p) continue;
+      const lab = el('label','ds-pii-opt');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.dataset.pid = p.id;
+      cb.checked = enabled.has(p.id);
+      cb.addEventListener('change', () => {
+        if (cb.checked) enabled.add(p.id); else enabled.delete(p.id);
+        renderPIIResults(result, enabled);
+      });
+      lab.append(cb, document.createTextNode(' ' + p.id));
+      row.append(lab);
+    }
+    grp.append(row);
+    opts.append(grp);
   }
   wrap.append(opts);
 
@@ -1883,14 +1901,16 @@ export function updateCardReviewUI(item){
   if (!item._cardEl) return;
   const head = item._cardEl.querySelector('.card-head');
   if (!head) return;
-  head.querySelectorAll('.review-badge,.tag-badge,.audit-badge').forEach(n => n.remove());
+  // Prefer the dedicated meta strip; fall back to head for backwards-compat
+  const meta = head.querySelector('.card-meta') || head;
+  meta.querySelectorAll('.review-badge,.tag-badge,.audit-badge').forEach(n => n.remove());
   if (item.review){
     const b = el('span', `review-badge review-${item.review}`, REVIEW_LABEL[item.review] + ' ' + item.review);
-    head.append(b);
+    meta.append(b);
   }
   for (const t of item.tags || []){
-    if (t.startsWith('_')) continue; // internal markers (e.g., #_dup)
-    head.append(el('span','tag-badge', '#' + t));
+    if (t.startsWith('_')) continue;
+    meta.append(el('span','tag-badge', '#' + t));
   }
   if (state.lastAudit){
     const stale = state.lastAudit.stale ? ' audit-stale' : '';
@@ -1900,7 +1920,7 @@ export function updateCardReviewUI(item){
       const b = el('button', `audit-badge audit-${sev}${stale}`, `⚠ ${lints.length} lint`);
       b.title = (state.lastAudit.stale ? '(audit stale) ' : '') + 'Click to expand: ' + lints.slice(0,4).map(i => i.code).join(', ');
       b.addEventListener('click', (e) => { e.stopPropagation(); toggleInlineIssues(item, 'lint'); });
-      head.append(b);
+      meta.append(b);
     }
     const piiHits = state.lastAudit.pii?.get(item.origIdx);
     if (piiHits && piiHits.length){
@@ -1908,13 +1928,13 @@ export function updateCardReviewUI(item){
       const b = el('button', `audit-badge audit-pii${stale}`, `🛡 ${piiHits.length} PII`);
       b.title = (state.lastAudit.stale ? '(audit stale) ' : '') + 'Click to expand: ' + types.join(', ');
       b.addEventListener('click', (e) => { e.stopPropagation(); toggleInlineIssues(item, 'pii'); });
-      head.append(b);
+      meta.append(b);
     }
     if (state.lastAudit.dups?.has(item.origIdx)){
       const b = el('button', `audit-badge audit-dup${stale}`, '◯ dup');
       b.title = 'Click to find this row\'s cluster';
       b.addEventListener('click', (e) => { e.stopPropagation(); openDedup(); });
-      head.append(b);
+      meta.append(b);
     }
   }
 }
@@ -2285,9 +2305,16 @@ export function renderDatasetPanel(){
     let piiN = 0;
     for (const arr of (state.lastAudit.pii?.values() || [])) piiN += arr.length;
     const dupN = state.lastAudit.dups?.size || 0;
-    live.append(el('span', `ds-chip ${lintN ? 'sev-warn' : ''}`, `lint: ${lintN}`));
-    live.append(el('span', `ds-chip ${piiN ? 'sev-warn' : ''}`, `PII: ${piiN}`));
-    live.append(el('span', `ds-chip ${dupN ? 'sev-warn' : ''}`, `dup: ${dupN}`));
+    const mkChip = (label, n, sev, onClick) => {
+      const b = el('button', `ds-chip ds-live-chip ${n ? sev : ''}`, `${label}: ${n}`);
+      b.title = onClick ? `Open ${label}` : 'No findings';
+      if (onClick) b.addEventListener('click', onClick);
+      else b.disabled = true;
+      return b;
+    };
+    live.append(mkChip('lint', lintN, 'sev-warn', lintN ? () => openLint() : null));
+    live.append(mkChip('PII', piiN, 'sev-warn', piiN ? () => openPIIScrub() : null));
+    live.append(mkChip('dup', dupN, 'sev-warn', dupN ? () => openDedup() : null));
     if (state.lastAudit.stale){
       const staleBtn = el('button', 'ds-chip sev-warn ds-stale-chip', 'stale — re-run');
       staleBtn.title = 'Click to re-run all audits now';
@@ -2307,9 +2334,21 @@ export function renderDatasetPanel(){
     live.append(onlyBtn);
     root.append(live);
 
-    const exportBtn = el('button','mini-btn ds-panel-btn','⤓ Export audit report');
+    // Score card actions: export + (densities toggle moved here)
+    const scoreActions = el('div','ds-score-actions');
+    const exportBtn = el('button','btn-link ds-score-action','⤓ Export report');
     exportBtn.addEventListener('click', exportAuditReport);
-    root.append(exportBtn);
+    const densBtn = el('button','btn-link ds-score-action');
+    const isCompact = localStorage.getItem('jsonl_viewer_dataset_density') === 'compact';
+    densBtn.textContent = isCompact ? '↕ Regular density' : '⇲ Compact density';
+    densBtn.addEventListener('click', () => {
+      const next = isCompact ? 'regular' : 'compact';
+      localStorage.setItem('jsonl_viewer_dataset_density', next);
+      document.body.classList.toggle('ds-compact', next === 'compact');
+      renderDatasetPanel();
+    });
+    scoreActions.append(exportBtn, densBtn);
+    root.append(scoreActions);
   }
 
   // Undo stack
@@ -2435,20 +2474,6 @@ export function renderDatasetPanel(){
                 el('span','ds-chip', `✗ ${r}`),
                 el('span','ds-chip', `? ${t}`));
   root.append(counts);
-
-  // Density toggle (compact panel)
-  const densSec = el('div','ds-panel-density');
-  const densBtn = el('button','mini-btn ds-density-btn');
-  const isCompact = localStorage.getItem('jsonl_viewer_dataset_density') === 'compact';
-  densBtn.textContent = isCompact ? 'Regular density' : 'Compact density';
-  densBtn.addEventListener('click', () => {
-    const next = isCompact ? 'regular' : 'compact';
-    localStorage.setItem('jsonl_viewer_dataset_density', next);
-    document.body.classList.toggle('ds-compact', next === 'compact');
-    renderDatasetPanel();
-  });
-  densSec.append(densBtn);
-  root.append(densSec);
 
   root.append(el('div','ds-panel-hint','a / r / t · review · d · diff · ? · help'));
 }

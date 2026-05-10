@@ -203,6 +203,10 @@ export function buildCard(item){
 
   head.append(left);
   head.append(item.error ? el('span','badge-err','Parse error') : el('span','badge-ok','OK'));
+  // Dedicated meta strip for review / tag / audit badges so the toolbar
+  // doesn't get crowded. Populated by updateCardReviewUI().
+  const metaStrip = el('div','card-meta');
+  head.append(metaStrip);
   head.append(toolbar);
 
   const headerWrap = el('header'); headerWrap.append(head);
