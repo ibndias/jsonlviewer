@@ -447,6 +447,16 @@ document.addEventListener('keydown', (e) => {
       window.__dataset_ui?.openShortcutsCheatsheet?.();
       break;
     }
+    case 'i': {
+      // Switch to dataset panel and focus the Inspector section
+      e.preventDefault();
+      window.__shell_switchPanel?.('dataset');
+      requestAnimationFrame(() => {
+        const det = document.querySelector('.ds-inspector');
+        if (det){ det.open = true; det.querySelector('summary')?.focus(); }
+      });
+      break;
+    }
   }
 });
 /* Beforeunload warning when dirty (skip in test mode via ?test=1) */

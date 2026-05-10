@@ -402,6 +402,34 @@ export function openAuditOverview(){
     grid.append(overviewCard('Reviewed', countReview('approve') + ' / ' + state.items.filter(x=>!x.deleted).length, `${countReview('reject')} rejected • ${countReview('todo')} todo`, () => { m.close(); openTagging(); }));
     wrap.append(grid);
 
+    // Quick action: approve all clean rows (no findings)
+    const cleanIds = [];
+    for (const it of liveItems()){
+      if (it.review === 'approve') continue;
+      const hasLint = lintMap.has(it.origIdx);
+      const hasPii = piiByRow.has(it.origIdx);
+      const isDup = dupSet.has(it.origIdx);
+      if (!hasLint && !hasPii && !isDup) cleanIds.push(it.origIdx);
+    }
+    if (cleanIds.length){
+      const quick = el('div','ds-section ds-quick');
+      quick.append(el('div','ds-row',
+        `${cleanIds.length} row${cleanIds.length===1?'':'s'} have zero audit findings — quick-approve?`));
+      const approveBtn = el('button','btn primary',`✓ Approve ${cleanIds.length} clean rows`);
+      approveBtn.addEventListener('click', () => {
+        captureBulkUndo(`Approve ${cleanIds.length} clean rows`);
+        for (const oi of cleanIds){
+          const it = state.items[oi];
+          setRowReview(it, 'approve');
+        }
+        renderView(); renderDatasetPanel();
+        showToast(`Approved ${cleanIds.length} clean row${cleanIds.length===1?'':'s'}`);
+        m.close();
+      });
+      quick.append(approveBtn);
+      wrap.append(quick);
+    }
+
     const recs = [];
     if (dupGroups.length) recs.push({
       msg: `Resolve ${dupGroups.length} duplicate cluster${dupGroups.length===1?'':'s'} before training.`,
@@ -420,6 +448,28 @@ export function openAuditOverview(){
       cta: 'Open convert', go: () => { m.close(); openConvert(); }
     });
     if (!recs.length) recs.push({ msg: 'No blocking issues detected.' });
+    // Outlier rows: top 5 by token count (truncation candidates)
+    const outliers = state.items
+      .filter(it => !it.deleted)
+      .map(it => ({ origIdx: it.origIdx, tokens: it.tokens }))
+      .sort((a,b) => b.tokens - a.tokens)
+      .slice(0, 5);
+    if (outliers.length){
+      const out = el('div','ds-section');
+      out.append(el('h3',null,'Longest rows (truncation candidates)'));
+      const list = el('div','ds-cluster-list');
+      for (const o of outliers){
+        const it = state.items[o.origIdx];
+        const row = el('div','ds-cluster-row');
+        row.append(jumpButton(o.origIdx, `#${it.fileIdx + 1}`));
+        row.append(el('span','ds-chip', `${fmtNum(o.tokens)} tok`));
+        row.append(el('span','ds-cluster-text', rowText(it).slice(0, 200)));
+        list.append(row);
+      }
+      out.append(list);
+      wrap.append(out);
+    }
+
     const rec = el('div','ds-section');
     rec.append(el('h3',null,'Recommended next'));
     const ul = el('div','ds-rec-list');
@@ -669,6 +719,37 @@ export function openPIIScrub(){
   const ctrls = el('div','ds-controls');
   ctrls.append(scanBtn, redactBtn);
   wrap.append(ctrls, result);
+
+  // Pattern tester
+  const tester = document.createElement('details');
+  tester.className = 'ds-acc';
+  const tsum = document.createElement('summary');
+  tsum.className = 'ds-acc-head';
+  tsum.append(el('span','ds-issue warn','tester'));
+  tsum.append(el('span','muted',' Paste a sample to see what matches'));
+  tester.append(tsum);
+  const tbody = el('div','ds-acc-body');
+  const tInp = document.createElement('textarea');
+  tInp.className = 'ds-schema-input';
+  tInp.placeholder = 'Paste a string to test against selected patterns…';
+  tInp.style.minHeight = '60px';
+  tbody.append(tInp);
+  const tOut = el('div','ds-result');
+  tbody.append(tOut);
+  tInp.addEventListener('input', () => {
+    tOut.replaceChildren();
+    if (!tInp.value) return;
+    const hits = scanPII(tInp.value, enabled);
+    if (!hits.length){ tOut.append(el('div','muted','no matches')); return; }
+    for (const h of hits.slice(0, 30)){
+      const row = el('div','ds-pii-row-head');
+      row.append(el('span','ds-issue warn', h.id));
+      row.append(snippetWithMatch(tInp.value, h.start, h.end, 30));
+      tOut.append(row);
+    }
+  });
+  tester.append(tbody);
+  wrap.append(tester);
 
   openDatasetModal('PII scrub', wrap, { subtitle: 'Locate and redact emails, phones, IPs, keys, JWT, SSN, CC' });
 
@@ -1768,7 +1849,8 @@ export function openShortcutsCheatsheet(){
       ['Ctrl/⌘ + P', 'Quick open'],
       ['Ctrl/⌘ + ⇧ + P', 'Command palette'],
     ]],
-    ['Help', [
+    ['Panels & help', [
+      ['i', 'Open Inspector for active row'],
       ['?', 'Show this cheatsheet'],
     ]],
   ];
