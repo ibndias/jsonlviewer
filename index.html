@@ -1109,6 +1109,14 @@
   .ds-panel-score-h{font:600 var(--fs-sm)/1.2 var(--sans); color:var(--fg)}
   .ds-panel-score-s{font:var(--fs-xs)/1.2 var(--mono); color:var(--muted)}
   .ds-panel-live{display:flex; gap:var(--s-2); flex-wrap:wrap; padding:var(--s-2) 0}
+  .ds-internal-filter{
+    display:flex; align-items:center; gap:var(--s-2);
+    padding:var(--s-2) var(--s-3); margin-top:var(--s-2);
+    background:color-mix(in oklab, var(--warn) 12%, transparent);
+    border:1px dashed color-mix(in oklab, var(--warn) 40%, transparent);
+    border-radius:var(--r-md);
+    font:var(--fs-sm)/1.3 var(--mono); color:var(--fg);
+  }
   .ds-panel-hint{padding-top:var(--s-3); color:var(--muted-2); font:var(--fs-xs)/1.3 var(--mono)}
   .ds-filter-row{flex-wrap:wrap}
   .ds-filter-chip{

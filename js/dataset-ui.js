@@ -255,10 +255,13 @@ export function openAuditOverview(){
     const dupSet = new Set();
     for (const g of dupGroups) for (const i of g) dupSet.add(i);
     state.lastAudit = { lint: lintMap, pii: piiByRow, dups: dupSet, ranAt: Date.now() };
+    state.lastAudit.score = computeQualityScore(prof, stats, state.lastAudit);
+    state.lastAudit.dominant = prof.dominant;
+    state.lastAudit.dominantPct = prof.dominantPct;
     decorateAllCards();
 
     wrap.replaceChildren();
-    const score = computeQualityScore(prof, stats, state.lastAudit);
+    const score = state.lastAudit.score;
     wrap.append(qualityCard(score, prof, state.lastAudit));
 
     const grid = el('div','ds-overview-grid');
@@ -1000,11 +1003,15 @@ export function openSplit(){
   updatePreview();
 
   runBtn.addEventListener('click', () => {
-    const ratios = [+tr.value || 0, +va.value || 0, +te.value || 0];
+    const ratios = [Math.max(0, +tr.value || 0), Math.max(0, +va.value || 0), Math.max(0, +te.value || 0)];
+    const sum = ratios.reduce((a,b) => a+b, 0);
+    if (sum <= 0){ showToast('Ratios must sum to > 0', 'err'); return; }
+    if (!liveItems().length){ showToast('No live rows', 'err'); return; }
     const seed = +sd.value || 1;
     const splits = splitDataset(state.items, ratios, seed);
     const labels = ['train', 'val', 'test'];
     splits.forEach((idxs, i) => {
+      if (!idxs.length) return;
       const lines = idxs.map(oi => exportRawFor(state.items[oi])).filter(Boolean);
       downloadText(`${baseName()}-${labels[i]}.jsonl`, lines.join('\n') + '\n', 'application/jsonl');
     });
@@ -1012,7 +1019,10 @@ export function openSplit(){
   });
 
   sampleBtn.addEventListener('click', () => {
-    const idxs = sample(state.items, +nIn.value || 100, +sd.value || 1);
+    const n = +nIn.value || 0;
+    if (n <= 0){ showToast('N must be > 0', 'err'); return; }
+    const idxs = sample(state.items, n, +sd.value || 1);
+    if (!idxs.length){ showToast('No live rows', 'err'); return; }
     const lines = idxs.map(oi => exportRawFor(state.items[oi])).filter(Boolean);
     downloadText(`${baseName()}-sample-${idxs.length}.jsonl`, lines.join('\n') + '\n', 'application/jsonl');
     showToast(`Sampled ${idxs.length} row${idxs.length===1?'':'s'}`);
@@ -1513,11 +1523,9 @@ export function renderDatasetPanel(){
     return;
   }
 
-  // Live count chips after audit + score
+  // Live count chips after audit + score (cached at audit time)
   if (state.lastAudit){
-    const prof = profileDataset(state.items);
-    const stats = computeStats(state.items);
-    const score = computeQualityScore(prof, stats, state.lastAudit);
+    const score = state.lastAudit.score ?? '—';
     const scoreRow = el('div','ds-panel-score');
     const ring = el('div','ds-panel-ring');
     ring.style.setProperty('--score', score);
@@ -1603,6 +1611,14 @@ export function renderDatasetPanel(){
     }
     filt.append(tagRow);
   }
+  // Internal filters (e.g. _dup from "Filter list to duplicates")
+  const internalActive = [...state.tagFilter].filter(t => t.startsWith('_'));
+  if (internalActive.length){
+    const note = el('div','ds-internal-filter');
+    note.append(el('span','ds-issue warn','filtered'));
+    note.append(el('span',null, internalActive.map(t => t.slice(1)).join(', ')));
+    filt.append(note);
+  }
   if (state.reviewFilter.size || state.tagFilter.size){
     const clear = el('button','mini-btn ds-panel-btn','Clear filters');
     clear.addEventListener('click', () => {
@@ -1659,9 +1675,18 @@ function exportAuditReport(){
     lint: [...audit.lint.entries()].map(([oi, issues]) => ({
       origIdx: oi, fileIdx: state.items[oi]?.fileIdx, issues
     })),
+    // Privacy: do NOT include the matched substring in the report. Ship
+    // only pattern id, field path, position, and length so reviewers can
+    // locate matches without leaking the secrets they were meant to find.
     pii: [...audit.pii.entries()].map(([oi, hits]) => ({
       origIdx: oi, fileIdx: state.items[oi]?.fileIdx,
-      hits: hits.map(h => ({ id: h.id, field: h.field, match: h.match }))
+      hits: hits.map(h => ({
+        id: h.id,
+        field: h.field,
+        start: h.start,
+        end: h.end,
+        len: (h.end ?? 0) - (h.start ?? 0),
+      }))
     })),
     duplicates: [...audit.dups],
   };
