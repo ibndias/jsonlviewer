@@ -28,6 +28,12 @@ export function applyFilters(items){
       const itTags = Array.isArray(it.tags) ? it.tags : [];
       for (const t of tags) if (!itTags.includes(t)) return false;
     }
+    if (state.auditFilterOnly && state.lastAudit){
+      const lints = state.lastAudit.lint?.get(it.origIdx) || [];
+      const piiHits = state.lastAudit.pii?.get(it.origIdx) || [];
+      const isDup = state.lastAudit.dups?.has(it.origIdx);
+      if (!lints.length && !piiHits.length && !isDup) return false;
+    }
     return true;
   });
 }

@@ -4,7 +4,7 @@ import {
   $drop, $list, $sortSel, $search, $minTokens, $maxTokens, $loadMore
 } from './dom.js';
 import { state, newFileId } from './state.js';
-import { tryParseFullJSON, parseAsJSON, parseAsJSONL } from './parse.js';
+import { tryParseFullJSON, parseAsJSON, parseAsJSONL, parseAsJSONLStream } from './parse.js';
 import { analyzeSchema, renderSidebar } from './schema.js';
 import { renderView, updateStats, updateDirtyBadge } from './view.js';
 import { confirmModal } from './modal.js';
@@ -140,17 +140,32 @@ export async function _parseFileIntoState(file, folder=''){
   state.fileName = file.name;
   updateStats();
 
-  const text = await file.text();
   const lower = (file.name || '').toLowerCase();
+  const STREAM_THRESHOLD = 10 * 1024 * 1024; // 10 MB
 
   let items;
-  if (lower.endsWith('.json')) {
-    const full = tryParseFullJSON(text);
-    items = full.ok ? parseAsJSON(full.value, text) : parseAsJSONL(text);
+  if (lower.endsWith('.jsonl') && file.size > STREAM_THRESHOLD && typeof file.stream === 'function'){
+    // Streaming JSONL parse with toast progress
+    const banner = el('div','load-banner','Loading… 0 rows');
+    document.body.append(banner);
+    try {
+      items = await parseAsJSONLStream(file, (rows, bytes) => {
+        const pct = file.size ? Math.min(99, Math.floor((bytes / file.size) * 100)) : 0;
+        banner.textContent = `Loading ${file.name}… ${rows.toLocaleString()} rows · ${pct}%`;
+      });
+    } finally {
+      banner.remove();
+    }
   } else {
-    const full = tryParseFullJSON(text);
-    if (full.ok && (typeof full.value !== 'string')) items = parseAsJSON(full.value, text);
-    else items = parseAsJSONL(text);
+    const text = await file.text();
+    if (lower.endsWith('.json')) {
+      const full = tryParseFullJSON(text);
+      items = full.ok ? parseAsJSON(full.value, text) : parseAsJSONL(text);
+    } else {
+      const full = tryParseFullJSON(text);
+      if (full.ok && (typeof full.value !== 'string')) items = parseAsJSON(full.value, text);
+      else items = parseAsJSONL(text);
+    }
   }
   items.forEach((it, i) => { it.origIdx = i; });
   state.items = items;

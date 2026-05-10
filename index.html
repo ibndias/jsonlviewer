@@ -1254,6 +1254,20 @@
   .ds-inspector-actions{display:flex; flex-wrap:wrap; gap:4px}
   .ds-stale-chip{cursor:pointer; border:0; font-family:var(--mono)}
   .ds-stale-chip:hover{filter:brightness(1.1)}
+  .ds-audit-only-chip{cursor:pointer; border:0; font-family:var(--sans)}
+  .ds-audit-only-chip.active{background:var(--accent-soft); color:var(--accent)}
+  .ds-audit-only-chip:hover{filter:brightness(1.05)}
+
+  /* Streaming-load banner */
+  .load-banner{
+    position:fixed; top:var(--s-5); left:50%; transform:translateX(-50%);
+    z-index:500;
+    background:var(--panel); color:var(--fg);
+    border:1px solid var(--border-soft); border-radius:var(--r-md);
+    padding:var(--s-3) var(--s-5);
+    font:600 var(--fs-base)/1.2 var(--mono);
+    box-shadow:var(--shadow-md);
+  }
 
   /* Mobile responsive */
   @media (max-width: 720px){

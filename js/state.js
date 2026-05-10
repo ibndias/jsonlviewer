@@ -25,6 +25,7 @@ export const state = {
   lastAudit: null,    // {lint: Map<origIdx, issue[]>, pii: Map<origIdx, hit[]>, dups: Set<origIdx>, ranAt: number}
   reviewFilter: new Set(),  // Set<'approve'|'reject'|'todo'|'none'>
   tagFilter: new Set(),     // Set<string>
+  auditFilterOnly: false,   // when true, show only rows with any audit finding
   // Undo stack for bulk dataset ops: [{ label, beforeMap, ts }, ...] (newest last)
   bulkUndoStack: [],
   // Score history: [{score, ranAt, lintN, piiN, dupN}] capped at 10

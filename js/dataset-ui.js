@@ -2167,6 +2167,17 @@ export function renderDatasetPanel(){
       staleBtn.addEventListener('click', () => { runAuditSilent(); showToast('Audit refreshed'); });
       live.append(staleBtn);
     }
+    // Quick toggle: filter list to rows with any audit finding
+    const onlyBtn = el('button', `ds-chip ds-audit-only-chip ${state.auditFilterOnly ? 'active' : ''}`,
+      state.auditFilterOnly ? '✓ only with findings' : 'show only with findings');
+    onlyBtn.title = 'Filter the main list to rows with any lint / PII / dup finding';
+    onlyBtn.addEventListener('click', () => {
+      state.auditFilterOnly = !state.auditFilterOnly;
+      state.pagesShown = 1;
+      renderView();
+      renderDatasetPanel();
+    });
+    live.append(onlyBtn);
     root.append(live);
 
     const exportBtn = el('button','mini-btn ds-panel-btn','⤓ Export audit report');
