@@ -303,7 +303,7 @@ export function buildFileRow(slot){
     e.stopPropagation();
     if (dirty){
       const ok = await confirmModal({
-        title:'Close file with unsaved edits?',
+        title:'Close file with unsaved edits',
         body:'Edits in "' + (s.fileName || 'this file') + '" will be lost.',
         okLabel:'Close', dangerous:true
       });

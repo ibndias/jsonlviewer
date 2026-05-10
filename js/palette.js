@@ -201,17 +201,17 @@ function buildCommandList(){
   const dsui = w.__dataset_ui;
   if (dsui){
     cmds.push({label: 'Dataset: Run all audits', action: () => dsui.openAuditOverview()});
-    cmds.push({label: 'Dataset: Undo last bulk', action: () => w.__dataset_undo?.()});
-    cmds.push({label: 'Dataset: Format profile + stats', action: () => dsui.openFormatProfile()});
-    cmds.push({label: 'Dataset: Lint', action: () => dsui.openLint()});
-    cmds.push({label: 'Dataset: JSON Schema validate', action: () => dsui.openSchemaValidate()});
+    cmds.push({label: 'Dataset: Undo last bulk op', action: () => w.__dataset_undo?.()});
+    cmds.push({label: 'Dataset: View profile + stats', action: () => dsui.openFormatProfile()});
+    cmds.push({label: 'Dataset: Lint dataset', action: () => dsui.openLint()});
+    cmds.push({label: 'Dataset: Validate schema', action: () => dsui.openSchemaValidate()});
     cmds.push({label: 'Dataset: Find duplicates', action: () => dsui.openDedup()});
-    cmds.push({label: 'Dataset: PII scrub', action: () => dsui.openPIIScrub()});
-    cmds.push({label: 'Dataset: Bulk transform', action: () => dsui.openBulkTransform()});
-    cmds.push({label: 'Dataset: Tagging + review', action: () => dsui.openTagging()});
-    cmds.push({label: 'Dataset: Sample / split', action: () => dsui.openSplit()});
-    cmds.push({label: 'Dataset: Format convert', action: () => dsui.openConvert()});
-    cmds.push({label: 'Dataset: Leakage check', action: () => dsui.openLeakage()});
+    cmds.push({label: 'Dataset: Scrub PII', action: () => dsui.openPIIScrub()});
+    cmds.push({label: 'Dataset: Transform rows', action: () => dsui.openBulkTransform()});
+    cmds.push({label: 'Dataset: Tag + review', action: () => dsui.openTagging()});
+    cmds.push({label: 'Dataset: Sample + split', action: () => dsui.openSplit()});
+    cmds.push({label: 'Dataset: Convert format', action: () => dsui.openConvert()});
+    cmds.push({label: 'Dataset: Check leakage', action: () => dsui.openLeakage()});
     cmds.push({label: 'Dataset: Compare files', action: () => dsui.openCompare()});
     cmds.push({label: 'Dataset: Diff active row', action: () => dsui.openDiffActive()});
     cmds.push({label: 'Dataset: Export audit report', action: () => w.__dataset_exportAudit?.()});

@@ -125,7 +125,7 @@ export function buildCard(item){
   resetBtn.addEventListener('click', async () => {
     if (!item.dirty) return;
     const ok = await confirmModal({
-      title:'Reset item?',
+      title:'Reset item',
       body:'Discard all edits in this item and restore original content.',
       okLabel:'Reset', dangerous:true
     });
@@ -153,7 +153,7 @@ export function buildCard(item){
   deleteBtn.title = 'Permanently remove this item from the list';
   deleteBtn.addEventListener('click', async () => {
     const ok = await confirmModal({
-      title:'Delete item?',
+      title:'Delete item',
       body:'This removes the item entirely. It will not be exported or saved.',
       okLabel:'Delete', dangerous:true
     });

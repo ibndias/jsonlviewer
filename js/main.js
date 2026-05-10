@@ -432,7 +432,7 @@ document.addEventListener('keydown', (e) => {
       const it = state.items[state.activeOrigIdx];
       if (!it) return;
       confirmModal({
-        title:'Delete item?',
+        title:'Delete item',
         body:'This removes the item entirely.',
         okLabel:'Delete', dangerous:true
       }).then(ok => {

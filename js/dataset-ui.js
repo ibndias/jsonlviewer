@@ -273,7 +273,7 @@ export function openFormatProfile(){
     sec.append(rl);
   }
   wrap.append(sec);
-  openDatasetModal('Format profile + stats', wrap, {
+  openDatasetModal('Profile + stats', wrap, {
     subtitle: `${fmtNum(prof.total)} rows • dominant: ${FMT_LABEL[prof.dominant] || prof.dominant} (${(prof.dominantPct*100).toFixed(0)}%)`
   });
 }
@@ -694,7 +694,7 @@ function renderDedupGroups(container, groups, keepMode){
   container.append(list);
 
   deleteOthers.addEventListener('click', async () => {
-    const ok = await confirmModal({title:'Delete duplicates?',
+    const ok = await confirmModal({title:'Delete duplicates',
       body:`Will mark ${dupCount} rows as deleted (keeping ${keepMode}). Undoable.`,
       okLabel:'Delete', dangerous:true});
     if (!ok) return;
@@ -828,7 +828,7 @@ export function openPIIScrub(){
   tester.append(tbody);
   wrap.append(tester);
 
-  openDatasetModal('PII scrub', wrap, { subtitle: 'Locate and redact emails, phones, IPs, keys, JWT, SSN, CC' });
+  openDatasetModal('Scrub PII', wrap, { subtitle: 'Locate and redact emails, phones, IPs, keys, JWT, SSN, CC' });
 
   scanBtn.addEventListener('click', () => renderPIIResults(result, enabled));
 
@@ -1162,7 +1162,7 @@ export function openSchemaValidate(){
   ctrls.append(runBtn, excludeBtn);
   wrap.append(ctrls, result);
 
-  openDatasetModal('JSON Schema validate', wrap, { subtitle: 'Subset of Draft-07: type/required/properties/items/enum/min*/max*/pattern/oneOf/anyOf/allOf' });
+  openDatasetModal('Validate schema', wrap, { subtitle: 'Subset of Draft-07: type/required/properties/items/enum/min*/max*/pattern/oneOf/anyOf/allOf' });
 
   const fireInput = () => ta.dispatchEvent(new Event('input'));
 
@@ -1269,7 +1269,7 @@ export function openConvert(){
   const ctrls = el('div','ds-controls');
   ctrls.append(previewBtn, runBtn, sharegptBtn);
   wrap.append(ctrls, result);
-  openDatasetModal('Format convert', wrap, { subtitle: 'ShareGPT / Alpaca / Completion → OpenAI chat (or reverse)' });
+  openDatasetModal('Convert format', wrap, { subtitle: 'ShareGPT / Alpaca / Completion → OpenAI chat (or reverse)' });
 
   let direction = 'to-openai';
   function convertRow(parsed){
@@ -1312,7 +1312,7 @@ export function openConvert(){
 
   runBtn.addEventListener('click', async () => {
     direction = 'to-openai';
-    const ok = await confirmModal({title:'Convert all → OpenAI chat?', body:'Edits become unsaved. Save to commit. Undoable.', okLabel:'Convert'});
+    const ok = await confirmModal({title:'Convert all to OpenAI chat', body:'Edits become unsaved. Save to commit. Undoable.', okLabel:'Convert'});
     if (!ok) return;
     captureBulkUndo('Convert → OpenAI chat');
     let n = 0, skipped = 0;
@@ -1331,7 +1331,7 @@ export function openConvert(){
   sharegptBtn.addEventListener('click', async (e) => {
     direction = 'to-sharegpt';
     if (e.shiftKey){ renderPreview(); return; }
-    const ok = await confirmModal({title:'OpenAI → ShareGPT?', body:'Maps messages[] → conversations[]. Shift-click for preview first. Undoable.', okLabel:'Convert'});
+    const ok = await confirmModal({title:'Convert OpenAI to ShareGPT', body:'Maps messages[] → conversations[]. Shift-click for preview first. Undoable.', okLabel:'Convert'});
     if (!ok) return;
     captureBulkUndo('Convert → ShareGPT');
     let n = 0, skipped = 0;
@@ -1390,7 +1390,7 @@ export function openSplit(){
   sampleSec.append(sctrls);
   wrap.append(sampleSec);
 
-  openDatasetModal('Sample / split', wrap, { subtitle: `${liveItems().length} live rows available` });
+  openDatasetModal('Sample + split', wrap, { subtitle: `${liveItems().length} live rows available` });
 
   const updatePreview = () => {
     const ratios = [+tr.value || 0, +va.value || 0, +te.value || 0];
@@ -1467,7 +1467,7 @@ export function openLeakage(){
   const otherSlots = state.files.filter(s => s.id !== state.activeId && (s.snapshot?.items?.length));
   if (!otherSlots.length){
     wrap.append(emptyState('Open a second file in another tab to compare against.'));
-    openDatasetModal('Leakage check', wrap);
+    openDatasetModal('Check leakage', wrap);
     return;
   }
   wrap.append(el('div','ds-row','Compare active file (A) against another open file (B).'));
@@ -1493,7 +1493,7 @@ export function openLeakage(){
   const result = el('div','ds-result');
   wrap.append(result);
 
-  openDatasetModal('Leakage check', wrap, { subtitle: 'Find rows in B that overlap with A (per-turn substring + simhash)' });
+  openDatasetModal('Check leakage', wrap, { subtitle: 'Find rows in B that overlap with A (per-turn substring + simhash)' });
 
   runBtn.addEventListener('click', () => {
     const slot = state.files.find(s => s.id === sel.value);
@@ -1782,7 +1782,7 @@ export function openBulkTransform(){
   const result = el('div','ds-result');
   wrap.append(result);
 
-  openDatasetModal('Bulk transform', wrap, { subtitle: 'Declarative pipeline · safe (no code execution)' });
+  openDatasetModal('Transform rows', wrap, { subtitle: 'Declarative pipeline · safe (no code execution)' });
 
   dryRunBtn.addEventListener('click', () => {
     if (!ops.length){ showToast('No ops'); return; }
@@ -1808,7 +1808,7 @@ export function openBulkTransform(){
 
   applyBtn.addEventListener('click', async () => {
     if (!ops.length){ showToast('No ops'); return; }
-    const ok = await confirmModal({title:'Apply transform?',
+    const ok = await confirmModal({title:'Apply transform',
       body:`Will edit all matching rows. Save to commit. Ops: ${ops.length}. Undoable.`, okLabel:'Apply'});
     if (!ok) return;
     captureBulkUndo(`Bulk transform (${ops.length} ops)`);
@@ -2092,7 +2092,7 @@ export function openTagging(){
   refresh();
   wrap.append(stats);
 
-  openDatasetModal('Tagging + review', wrap, { subtitle: 'Keyboard: a / r / t toggle approve / reject / todo on active row' });
+  openDatasetModal('Tag + review', wrap, { subtitle: 'Keyboard: a / r / t toggle approve / reject / todo on active row' });
 
   approveAll.addEventListener('click', () => {
     for (const it of state.viewItems) setRowReview(it, 'approve');
@@ -2133,7 +2133,7 @@ export function openTagging(){
     showToast(`Excluded ${n}`);
   });
   delRej.addEventListener('click', async () => {
-    const ok = await confirmModal({title:'Delete rejected?', body:'Marks all rejected rows as deleted.', okLabel:'Delete', dangerous:true});
+    const ok = await confirmModal({title:'Delete rejected rows', body:'Marks all rejected rows as deleted.', okLabel:'Delete', dangerous:true});
     if (!ok) return;
     let n = 0;
     for (const it of liveItems()) if (it.review === 'reject'){ it.deleted = true; n++; }
@@ -2164,7 +2164,7 @@ export function openShortcutsCheatsheet(){
       ['x', 'Toggle exclude from export'],
       ['Delete / Backspace', 'Delete row'],
     ]],
-    ['Files / commands', [
+    ['Files & commands', [
       ['Ctrl/⌘ + S', 'Save active file'],
       ['Ctrl/⌘ + P', 'Quick open'],
       ['Ctrl/⌘ + ⇧ + P', 'Command palette'],
@@ -2198,7 +2198,7 @@ export function openDiffActive(){
   const wrap = el('div','ds-section');
   if (!it.dirty || !it.originalParsed){
     wrap.append(el('div','side-empty','No edits on this row.'));
-    openDatasetModal('Row diff', wrap);
+    openDatasetModal('Diff active row', wrap);
     return;
   }
   const diffs = diffJSON(it.originalParsed, it.parsed);
@@ -2364,22 +2364,22 @@ export function renderDatasetPanel(){
   }
 
   root.append(makeSection('audit', 'Audit', [
-    ['▦', 'Format profile + stats', openFormatProfile],
+    ['▦', 'View profile + stats', openFormatProfile],
     ['✓', 'Lint dataset', openLint],
-    ['§', 'Schema validate', openSchemaValidate],
+    ['§', 'Validate schema', openSchemaValidate],
   ]));
   root.append(makeSection('curate', 'Curate', [
     ['◯', 'Find duplicates', openDedup],
-    ['★', 'PII scrub', openPIIScrub],
-    ['⤳', 'Bulk transform', openBulkTransform],
+    ['★', 'Scrub PII', openPIIScrub],
+    ['⤳', 'Transform rows', openBulkTransform],
   ]));
   root.append(makeSection('workflow', 'Workflow', [
-    ['☑', 'Tagging + review', openTagging],
-    ['✂', 'Sample / split', openSplit],
-    ['⇄', 'Format convert', openConvert],
-    ['⌕', 'Leakage check', openLeakage],
+    ['☑', 'Tag + review', openTagging],
+    ['✂', 'Sample + split', openSplit],
+    ['⇄', 'Convert format', openConvert],
+    ['⌕', 'Check leakage', openLeakage],
     ['⊟', 'Compare files', openCompare],
-    ['Δ', 'Diff active row (d)', openDiffActive],
+    ['Δ', 'Diff active row', openDiffActive],
   ]));
 
   // Persist filters whenever rendered
