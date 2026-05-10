@@ -393,6 +393,13 @@ export function runAuditSilent(){
   decorateAllCards();
   try { window.__projectsui_refreshStatusBar?.(); } catch {}
   persistAuditCache();
+  // Toast summary so users see results when run via shortcut/silent path
+  const a = state.lastAudit;
+  let total = 0;
+  total += a.lint?.size || 0;
+  for (const arr of (a.pii?.values() || [])) total += arr.length;
+  total += a.dups?.size || 0;
+  showToast(`Quality ${a.score}/100${total ? ` · ${total} findings` : ''}`);
 }
 
 function pushScoreHistory(){
