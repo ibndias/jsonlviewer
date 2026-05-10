@@ -1435,6 +1435,117 @@ export function openLeakage(){
   });
 }
 
+/* ---------- Compare files ---------- */
+
+export function openCompare(){
+  if (!ensureFile()) return;
+  const wrap = el('div','ds-section');
+  const otherSlots = state.files.filter(s => s.id !== state.activeId && (s.snapshot?.items?.length));
+  if (!otherSlots.length){
+    wrap.append(emptyState('Open a second file in another tab to compare against.'));
+    openDatasetModal('Compare files', wrap);
+    return;
+  }
+  wrap.append(el('div','ds-row','Compare the active file (A) against another open file (B). Shows format profile delta, schema delta, exact-row overlap.'));
+  const ctrls = el('div','ds-controls');
+  ctrls.append(el('label',null,'File B'));
+  const sel = document.createElement('select'); sel.className = 'select';
+  for (const slot of otherSlots){
+    const s = slot.snapshot || {};
+    const o = document.createElement('option');
+    o.value = slot.id; o.textContent = s.fileName || slot.id;
+    sel.append(o);
+  }
+  ctrls.append(sel);
+  const runBtn = el('button','btn primary','Compare');
+  ctrls.append(runBtn);
+  wrap.append(ctrls);
+  const result = el('div','ds-result');
+  wrap.append(result);
+
+  openDatasetModal('Compare files', wrap, { subtitle: 'Side-by-side: counts • formats • schema keys • row overlap' });
+
+  runBtn.addEventListener('click', () => {
+    const slot = state.files.find(s => s.id === sel.value);
+    if (!slot){ showToast('Pick a file', 'err'); return; }
+    const itemsA = state.items;
+    const itemsB = slot.snapshot?.items || [];
+    if (!itemsB.length){ showToast('File B has no rows.', 'err'); return; }
+    renderCompare(result, itemsA, itemsB, state.fileName, slot.snapshot?.fileName || 'B');
+  });
+}
+
+function renderCompare(container, itemsA, itemsB, nameA, nameB){
+  container.replaceChildren();
+  const profA = profileDataset(itemsA);
+  const profB = profileDataset(itemsB);
+  const liveA = itemsA.filter(it => !it.deleted);
+  const liveB = itemsB.filter(it => !it.deleted);
+
+  // Top-level counts
+  const counts = el('div','ds-overview-grid');
+  counts.append(overviewCard('A rows', fmtNum(liveA.length), nameA, null));
+  counts.append(overviewCard('B rows', fmtNum(liveB.length), nameB, null));
+  // Format dominant
+  counts.append(overviewCard('A format', FMT_LABEL[profA.dominant] || profA.dominant, `${(profA.dominantPct*100).toFixed(0)}% conform`, null));
+  counts.append(overviewCard('B format', FMT_LABEL[profB.dominant] || profB.dominant, `${(profB.dominantPct*100).toFixed(0)}% conform`, null));
+  container.append(counts);
+
+  // Format mix table
+  const fmtSec = el('div','ds-section');
+  fmtSec.append(el('h3',null,'Format mix'));
+  const allFmts = new Set([...profA.counts.map(([k]) => k), ...profB.counts.map(([k]) => k)]);
+  const mapA = new Map(profA.counts);
+  const mapB = new Map(profB.counts);
+  const tbl = el('table','ds-table');
+  const head = el('tr');
+  head.append(el('th',null,'Format'), el('th',null,'A'), el('th',null,'B'), el('th',null,'Δ'));
+  tbl.append(head);
+  for (const f of allFmts){
+    const tr = el('tr');
+    const a = mapA.get(f) || 0;
+    const b = mapB.get(f) || 0;
+    const delta = b - a;
+    tr.append(
+      el('td',null, FMT_LABEL[f] || f),
+      el('td',null, fmtNum(a)),
+      el('td',null, fmtNum(b)),
+      el('td','muted', (delta > 0 ? '+' : '') + delta)
+    );
+    tbl.append(tr);
+  }
+  fmtSec.append(tbl);
+  container.append(fmtSec);
+
+  // Schema (top-level keys) overlap
+  const keysA = new Map(); const keysB = new Map();
+  for (const it of liveA) for (const k of (it.topKeys || [])) keysA.set(k, (keysA.get(k)||0)+1);
+  for (const it of liveB) for (const k of (it.topKeys || [])) keysB.set(k, (keysB.get(k)||0)+1);
+  const allKeys = new Set([...keysA.keys(), ...keysB.keys()]);
+  const onlyA = [...allKeys].filter(k => keysA.has(k) && !keysB.has(k));
+  const onlyB = [...allKeys].filter(k => !keysA.has(k) && keysB.has(k));
+  const both  = [...allKeys].filter(k => keysA.has(k) && keysB.has(k));
+  const keySec = el('div','ds-section');
+  keySec.append(el('h3',null,'Schema (top-level keys)'));
+  const keyGrid = el('div','ds-overview-grid');
+  keyGrid.append(overviewCard('A only', fmtNum(onlyA.length), onlyA.slice(0,4).map(k => '#'+k).join(' · ') || '—', null));
+  keyGrid.append(overviewCard('Both', fmtNum(both.length), both.slice(0,4).map(k => '#'+k).join(' · ') || '—', null));
+  keyGrid.append(overviewCard('B only', fmtNum(onlyB.length), onlyB.slice(0,4).map(k => '#'+k).join(' · ') || '—', null));
+  keySec.append(keyGrid);
+  container.append(keySec);
+
+  // Row overlap (exact, by serialized JSON)
+  const sigA = new Set();
+  for (const it of liveA){ if (!it.error) sigA.add(JSON.stringify(it.parsed)); }
+  let inBoth = 0;
+  for (const it of liveB){ if (!it.error && sigA.has(JSON.stringify(it.parsed))) inBoth++; }
+  const rowSec = el('div','ds-section');
+  rowSec.append(el('h3',null,'Row overlap (exact JSON)'));
+  rowSec.append(el('div','ds-row',
+    `${fmtNum(inBoth)} row${inBoth===1?'':'s'} of B (${((inBoth/(liveB.length||1))*100).toFixed(1)}%) match A exactly`));
+  container.append(rowSec);
+}
+
 /* ---------- Bulk transform ---------- */
 
 export function openBulkTransform(){
@@ -1516,8 +1627,41 @@ export function openBulkTransform(){
 
   const dryRunBtn = el('button','btn','Dry run');
   const applyBtn = el('button','btn primary','Apply to all');
+  const saveBtn = el('button','btn','⤓ Save pipeline');
+  const loadBtn = el('button','btn','⤒ Load pipeline');
+  saveBtn.title = 'Download current ops as JSON for reuse';
+  loadBtn.title = 'Load ops from a previously saved JSON';
+  saveBtn.addEventListener('click', () => {
+    if (!ops.length){ showToast('No ops to save', 'err'); return; }
+    downloadText(`pipeline-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`,
+      JSON.stringify({ format:'jsonlviewer-pipeline', schemaVersion:1, ops }, null, 2),
+      'application/json');
+    showToast('Pipeline downloaded');
+  });
+  loadBtn.addEventListener('click', () => {
+    const fi = document.createElement('input');
+    fi.type = 'file'; fi.accept = '.json,application/json';
+    fi.style.display = 'none';
+    document.body.append(fi);
+    fi.addEventListener('change', async () => {
+      const f = fi.files?.[0]; if (!f){ fi.remove(); return; }
+      try {
+        const text = await f.text();
+        const obj = JSON.parse(text);
+        if (obj.format !== 'jsonlviewer-pipeline' || !Array.isArray(obj.ops)){
+          showToast('Not a pipeline file', 'err'); fi.remove(); return;
+        }
+        ops.length = 0;
+        for (const op of obj.ops) ops.push(op);
+        renderOps();
+        showToast(`Loaded ${ops.length} op${ops.length===1?'':'s'}`);
+      } catch (e){ showToast('Load failed: ' + e.message, 'err'); }
+      fi.remove();
+    });
+    fi.click();
+  });
   const ctrls = el('div','ds-controls');
-  ctrls.append(dryRunBtn, applyBtn);
+  ctrls.append(dryRunBtn, applyBtn, saveBtn, loadBtn);
   wrap.append(ctrls);
   const result = el('div','ds-result');
   wrap.append(result);
@@ -2057,6 +2201,7 @@ export function renderDatasetPanel(){
     ['✂', 'Sample / split', openSplit],
     ['⇄', 'Format convert', openConvert],
     ['⌕', 'Leakage check', openLeakage],
+    ['⊟', 'Compare files', openCompare],
     ['Δ', 'Diff active row (d)', openDiffActive],
   ]));
 
@@ -2366,7 +2511,7 @@ if (typeof window !== 'undefined'){
   window.__dataset_ui = {
     openFormatProfile, openDedup, openPIIScrub, openLint, openSchemaValidate,
     openConvert, openSplit, openLeakage, openBulkTransform, openTagging,
-    openDiffActive, openAuditOverview, openShortcutsCheatsheet,
+    openDiffActive, openAuditOverview, openShortcutsCheatsheet, openCompare,
     renderDatasetPanel, setRowReview, toggleRowTag, updateCardReviewUI,
     decorateAllCards, knownTags,
     runAuditSilent,
